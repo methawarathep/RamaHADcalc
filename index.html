@@ -1,32 +1,1750 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rama HAD Calculator</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #ffffff;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-  </style>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAMA HAD Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     Tokens
+     ========================================================= */
+  :root{
+    --header-h: 56px;
+
+    --paper:#F5F7FA;
+    --surface:#FFFFFF;
+    --surface-2:#FBFCFD;
+    --ink:#1F2A30;
+    --ink-soft:#5B6B72;
+    --ink-faint:#8B979C;
+    --line:#E2E7EA;
+    --line-strong:#CBD4D8;
+    --line-navy-soft:#E3E7F0;
+
+    --brand-deep:#0B1B33;
+    --brand-deep-2:#3B2166;
+    --brand-line:#C9A45C;
+    --accent:#2C7A7B;
+    --accent-soft:#DCF0EE;
+
+    --warn-bg:#FDF2E3; --warn-fg:#8A5A11; --warn-line:#F0D6A6;
+    --danger-bg:#FBE7E7; --danger-fg:#9B2C2C; --danger-line:#F0BEBE;
+    --info-bg:#EAF1FB; --info-fg:#2C4E80; --info-line:#C7D9F2;
+
+    --radius-sm:8px;
+    --radius-md:14px;
+    --radius-lg:20px;
+    --shadow-1:0 2px 7px rgba(11,27,51,.08), 0 1px 2px rgba(11,27,51,.05);
+    --shadow-2:0 14px 30px rgba(11,27,51,.16);
+
+    --font-serif:'Noto Serif Thai','Source Serif 4',Georgia,serif;
+    --font-sans:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+
+  /* Drug-class colors: ONE set of variables shared by the homepage cards,
+     the class chip on a drug's page, and that page's accent (border,
+     numeral badges, sticky box wash) — so a drug's page always matches
+     the exact card it was opened from. The colour follows the sheet's
+     Drug_class (see CLASS_COLOR in the script). --class-rgb is the same
+     color as --class-fg, as bare "r,g,b" numbers, for building low-opacity
+     tints (rgba(var(--class-rgb), .16)) without a second hardcoded color.
+     Every bg/bg2 + fg pair clears 4.5:1 contrast, and the five classes
+     are at least ~28 CIE76 apart so neighbouring cards stay distinct. */
+  .class-cardio{ --class-bg:#FAD3D6; --class-bg2:#F4B1B8; --class-fg:#8C1D2E; --class-rgb:140,29,46; --class-shadow:rgba(140,29,46,.28); }
+  .class-nmb{ --class-bg:#EBD7F5; --class-bg2:#D9B5EC; --class-fg:#5B2A7E; --class-rgb:91,42,126; --class-shadow:rgba(91,42,126,.28); }
+  .class-sedative{ --class-bg:#CFE6FA; --class-bg2:#A9D2F5; --class-fg:#12467A; --class-rgb:18,70,122; --class-shadow:rgba(18,70,122,.28); }
+  .class-opioid{ --class-bg:#FBE3C4; --class-bg2:#F8CE96; --class-fg:#7A4A0C; --class-rgb:122,74,12; --class-shadow:rgba(122,74,12,.28); }
+  .class-other{ --class-bg:#D6EEC4; --class-bg2:#B9DF9A; --class-fg:#2F5A12; --class-rgb:47,90,18; --class-shadow:rgba(47,90,18,.28); }
+
+  /* the drug-detail view reuses the same variables under the names
+     the rest of the page already reads (--card-fg / --card-bg) */
+  .view{ --card-fg:var(--class-fg); --card-bg:var(--class-bg); --card-rgb:var(--class-rgb); }
+
+  /* =========================================================
+     Reset & base
+     ========================================================= */
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  [hidden]{ display:none !important; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  button,input,select{ font:inherit; color:inherit; }
+  h1,h2,p{ margin:0; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* =========================================================
+     Header
+     ========================================================= */
+  .app-header{
+    position:sticky; top:0; z-index:50; height:var(--header-h);
+    background:linear-gradient(135deg,var(--brand-deep),var(--brand-deep-2));
+    box-shadow:var(--shadow-1);
+  }
+  .app-header::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--brand-line) 18%, var(--brand-line) 82%, transparent);
+    opacity:.75;
+  }
+  .app-header :focus-visible{ outline-color:#fff; }
+  .header-inner{
+    max-width:900px; margin:0 auto; height:100%;
+    padding:0 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .brand-btn{
+    background:none; border:none; cursor:pointer; padding:6px 4px;
+    display:flex; align-items:center; gap:10px; color:#fff;
+  }
+  .brand-mark{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px; border-radius:50%;
+    background:rgba(255,255,255,.16); font-size:1rem; flex-shrink:0;
+  }
+  .brand-text{ font-family:var(--font-serif); font-weight:600; font-size:1.02rem; letter-spacing:.01em; }
+  .btn-back{
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.28);
+    color:#fff; border-radius:999px; padding:7px 14px; font-size:.82rem; font-weight:500;
+    cursor:pointer; white-space:nowrap;
+  }
+  .btn-back:hover{ background:rgba(255,255,255,.2); }
+
+  /* =========================================================
+     Layout
+     ========================================================= */
+  #app-main{ max-width:900px; margin:0 auto; padding:22px 16px 56px; }
+  .view{ animation:viewIn .25s ease; }
+  @keyframes viewIn{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
+
+  /* =========================================================
+     Home view
+     ========================================================= */
+  .intro{ color:var(--ink-soft); font-size:.95rem; margin:2px 0 22px; }  /* full content width, matching the search box and cards */
+  .intro + .intro-detail{ margin-top:-12px; font-size:.9rem; }
+  .search-wrap{ position:relative; margin-bottom:26px; }
+  .search-icon{
+    position:absolute; left:18px; top:50%; transform:translateY(-50%);
+    pointer-events:none; font-size:.95rem; opacity:.55;
+  }
+  #search-input{
+    width:100%; padding:15px 18px 15px 46px; border-radius:999px;
+    border:1px solid var(--line-strong); background:var(--surface);
+    font-size:1rem; box-shadow:var(--shadow-1);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  #search-input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+
+  .drug-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:13px;
+  }
+  .drug-card{
+    position:relative; overflow:hidden;
+    border:none; cursor:pointer; border-radius:var(--radius-md);
+    padding:20px 18px; text-align:left; font-family:inherit;
+    display:flex; flex-direction:column; gap:3px;
+    color:var(--class-fg);
+    background:
+      radial-gradient(circle at 112% 128%, rgba(var(--class-rgb),.16) 0%, rgba(var(--class-rgb),0) 46%),
+      linear-gradient(135deg, var(--class-bg) 0%, var(--class-bg2) 100%);
+    box-shadow:var(--shadow-1);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .drug-card:hover, .drug-card:focus-visible{
+    transform:translateY(-4px);
+    box-shadow:0 16px 30px -12px var(--class-shadow), var(--shadow-1);
+  }
+  .card-icon{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:50%;
+    background:rgba(255,255,255,.55);
+    margin-bottom:4px;
+  }
+  .card-icon svg{ width:17px; height:17px; }
+  .drug-card .name{ font-family:var(--font-serif); font-weight:600; font-size:1.06rem; }
+  /* full-strength colour (no opacity) so both lines keep >= 4.5:1 on every class; hierarchy comes from weight/size */
+  .drug-card .class-label{ font-size:.78rem; font-weight:600; line-height:1.3; margin-top:2px; }
+  .drug-card .class-sub{ font-size:.74rem; font-weight:500; line-height:1.3; }
+
+  .no-results{ padding:44px 16px; text-align:center; color:var(--ink-soft); font-size:.95rem; }
+
+  .data-note{
+    margin:0 0 12px; padding:9px 12px; border-radius:var(--radius-sm); font-size:.82rem;
+    background:var(--warn-bg); color:var(--warn-fg); border:1px solid var(--warn-line);
+  }
+  .loading-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:20px; padding:60px 16px 52px; text-align:center;
+    animation:loadingFadeIn .5s ease;
+  }
+  @keyframes loadingFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  .loading-spinner{ position:relative; width:60px; height:60px; }
+  .loading-ring{
+    position:absolute; inset:0; border-radius:50%;
+    border:3px solid transparent; box-sizing:border-box;
+  }
+  .loading-ring:nth-child(1){
+    border-top-color:var(--accent); border-right-color:var(--accent);
+    animation:loadingSpin 1.1s cubic-bezier(.5,0,.5,1) infinite;
+  }
+  .loading-ring:nth-child(2){
+    inset:9px;
+    border-top-color:var(--accent-soft);
+    animation:loadingSpin 1.6s cubic-bezier(.5,0,.5,1) infinite reverse;
+  }
+  .loading-ring:nth-child(3){
+    inset:18px;
+    border-top-color:var(--ink-faint);
+    animation:loadingSpin 2.4s linear infinite;
+    opacity:.6;
+  }
+  @keyframes loadingSpin{ to{ transform:rotate(360deg); } }
+  .loading-text{
+    font-size:.88rem; color:var(--ink-soft); letter-spacing:.01em;
+    animation:loadingPulseText 1.8s ease-in-out infinite;
+  }
+  @keyframes loadingPulseText{ 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+
+  /* =========================================================
+     Drug detail view
+     ========================================================= */
+  .drug-title{ font-family:var(--font-serif); font-size:1.65rem; font-weight:600; margin-top:0; }
+  .drug-subtitle{ color:var(--ink-soft); font-size:.9rem; margin:4px 0 18px; }
+  .class-chip{
+    display:inline-flex; align-items:center;
+    background:var(--class-bg); color:var(--class-fg);
+    padding:5px 13px; border-radius:999px;
+    font-size:.76rem; font-weight:600; letter-spacing:.01em;
+    margin:2px 0 10px;
+  }
+
+  .rx-box{
+    position:sticky; top:var(--header-h); z-index:40; overflow:hidden;
+    background-image:
+      url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWCAYAAAA8AXHiAAAKMGlDQ1BJQ0MgUHJvZmlsZQAAeJydlndUVNcWh8+9d3qhzTAUKUPvvQ0gvTep0kRhmBlgKAMOMzSxIaICEUVEBBVBgiIGjIYisSKKhYBgwR6QIKDEYBRRUXkzslZ05eW9l5ffH2d9a5+99z1n733WugCQvP25vHRYCoA0noAf4uVKj4yKpmP7AQzwAAPMAGCyMjMCQj3DgEg+Hm70TJET+CIIgDd3xCsAN428g+h08P9JmpXBF4jSBInYgs3JZIm4UMSp2YIMsX1GxNT4FDHDKDHzRQcUsbyYExfZ8LPPIjuLmZ3GY4tYfOYMdhpbzD0i3pol5IgY8RdxURaXky3iWyLWTBWmcUX8VhybxmFmAoAiie0CDitJxKYiJvHDQtxEvBQAHCnxK47/igWcHIH4Um7pGbl8bmKSgK7L0qOb2doy6N6c7FSOQGAUxGSlMPlsult6WgaTlwvA4p0/S0ZcW7qoyNZmttbWRubGZl8V6r9u/k2Je7tIr4I/9wyi9X2x/ZVfej0AjFlRbXZ8scXvBaBjMwDy97/YNA8CICnqW/vAV/ehieclSSDIsDMxyc7ONuZyWMbigv6h/+nwN/TV94zF6f4oD92dk8AUpgro4rqx0lPThXx6ZgaTxaEb/XmI/3HgX5/DMISTwOFzeKKIcNGUcXmJonbz2FwBN51H5/L+UxP/YdiftDjXIlEaPgFqrDGQGqAC5Nc+gKIQARJzQLQD/dE3f3w4EL+8CNWJxbn/LOjfs8Jl4iWTm/g5zi0kjM4S8rMW98TPEqABAUgCKlAAKkAD6AIjYA5sgD1wBh7AFwSCMBAFVgEWSAJpgA+yQT7YCIpACdgBdoNqUAsaQBNoASdABzgNLoDL4Dq4AW6DB2AEjIPnYAa8AfMQBGEhMkSBFCBVSAsygMwhBuQIeUD+UAgUBcVBiRAPEkL50CaoBCqHqqE6qAn6HjoFXYCuQoPQPWgUmoJ+h97DCEyCqbAyrA2bwAzYBfaDw+CVcCK8Gs6DC+HtcBVcDx+D2+EL8HX4NjwCP4dnEYAQERqihhghDMQNCUSikQSEj6xDipFKpB5pQbqQXuQmMoJMI+9QGBQFRUcZoexR3qjlKBZqNWodqhRVjTqCakf1oG6iRlEzqE9oMloJbYC2Q/ugI9GJ6Gx0EboS3YhuQ19C30aPo99gMBgaRgdjg/HGRGGSMWswpZj9mFbMecwgZgwzi8ViFbAGWAdsIJaJFWCLsHuxx7DnsEPYcexbHBGnijPHeeKicTxcAa4SdxR3FjeEm8DN46XwWng7fCCejc/Fl+Eb8F34Afw4fp4gTdAhOBDCCMmEjYQqQgvhEuEh4RWRSFQn2hKDiVziBmIV8TjxCnGU+I4kQ9InuZFiSELSdtJh0nnSPdIrMpmsTXYmR5MF5O3kJvJF8mPyWwmKhLGEjwRbYr1EjUS7xJDEC0m8pJaki+QqyTzJSsmTkgOS01J4KW0pNymm1DqpGqlTUsNSs9IUaTPpQOk06VLpo9JXpSdlsDLaMh4ybJlCmUMyF2XGKAhFg+JGYVE2URoolyjjVAxVh+pDTaaWUL+j9lNnZGVkLWXDZXNka2TPyI7QEJo2zYeWSiujnaDdob2XU5ZzkePIbZNrkRuSm5NfIu8sz5Evlm+Vvy3/XoGu4KGQorBToUPhkSJKUV8xWDFb8YDiJcXpJdQl9ktYS4qXnFhyXwlW0lcKUVqjdEipT2lWWUXZSzlDea/yReVpFZqKs0qySoXKWZUpVYqqoypXtUL1nOozuizdhZ5Kr6L30GfUlNS81YRqdWr9avPqOurL1QvUW9UfaRA0GBoJGhUa3RozmqqaAZr5ms2a97XwWgytJK09Wr1ac9o62hHaW7Q7tCd15HV8dPJ0mnUe6pJ1nXRX69br3tLD6DH0UvT2693Qh/Wt9JP0a/QHDGADawOuwX6DQUO0oa0hz7DecNiIZORilGXUbDRqTDP2Ny4w7jB+YaJpEm2y06TX5JOplWmqaYPpAzMZM1+zArMus9/N9c1Z5jXmtyzIFp4W6y06LV5aGlhyLA9Y3rWiWAVYbbHqtvpobWPNt26xnrLRtImz2WczzKAyghiljCu2aFtX2/W2p23f2VnbCexO2P1mb2SfYn/UfnKpzlLO0oalYw7qDkyHOocRR7pjnONBxxEnNSemU73TE2cNZ7Zzo/OEi55Lsssxlxeupq581zbXOTc7t7Vu590Rdy/3Yvd+DxmP5R7VHo891T0TPZs9Z7ysvNZ4nfdGe/t57/Qe9lH2Yfk0+cz42viu9e3xI/mF+lX7PfHX9+f7dwXAAb4BuwIeLtNaxlvWEQgCfQJ3BT4K0glaHfRjMCY4KLgm+GmIWUh+SG8oJTQ29GjomzDXsLKwB8t1lwuXd4dLhseEN4XPRbhHlEeMRJpEro28HqUYxY3qjMZGh0c3Rs+u8Fixe8V4jFVMUcydlTorc1ZeXaW4KnXVmVjJWGbsyTh0XETc0bgPzEBmPXM23id+X/wMy421h/Wc7cyuYE9xHDjlnIkEh4TyhMlEh8RdiVNJTkmVSdNcN24192Wyd3Jt8lxKYMrhlIXUiNTWNFxaXNopngwvhdeTrpKekz6YYZBRlDGy2m717tUzfD9+YyaUuTKzU0AV/Uz1CXWFm4WjWY5ZNVlvs8OzT+ZI5/By+nL1c7flTuR55n27BrWGtaY7Xy1/Y/7oWpe1deugdfHrutdrrC9cP77Ba8ORjYSNKRt/KjAtKC94vSliU1ehcuGGwrHNXpubiySK+EXDW+y31G5FbeVu7d9msW3vtk/F7OJrJaYllSUfSlml174x+6bqm4XtCdv7y6zLDuzA7ODtuLPTaeeRcunyvPKxXQG72ivoFcUVr3fH7r5aaVlZu4ewR7hnpMq/qnOv5t4dez9UJ1XfrnGtad2ntG/bvrn97P1DB5wPtNQq15bUvj/IPXi3zquuvV67vvIQ5lDWoacN4Q293zK+bWpUbCxp/HiYd3jkSMiRniabpqajSkfLmuFmYfPUsZhjN75z/66zxailrpXWWnIcHBcef/Z93Pd3Tvid6D7JONnyg9YP+9oobcXtUHtu+0xHUsdIZ1Tn4CnfU91d9l1tPxr/ePi02umaM7Jnys4SzhaeXTiXd272fMb56QuJF8a6Y7sfXIy8eKsnuKf/kt+lK5c9L1/sdek9d8XhyumrdldPXWNc67hufb29z6qv7Sern9r6rfvbB2wGOm/Y3ugaXDp4dshp6MJN95uXb/ncun572e3BO8vv3B2OGR65y747eS/13sv7WffnH2x4iH5Y/EjqUeVjpcf1P+v93DpiPXJm1H2070nokwdjrLHnv2T+8mG88Cn5aeWE6kTTpPnk6SnPqRvPVjwbf57xfH666FfpX/e90H3xw2/Ov/XNRM6Mv+S/XPi99JXCq8OvLV93zwbNPn6T9mZ+rvitwtsj7xjvet9HvJ+Yz/6A/VD1Ue9j1ye/Tw8X0hYW/gUDmPP8uaxzGQAAUuBJREFUeNrtvWuUndV5Jvi8e+/vds6pKknYSfAFXQARS/TqJBBucQ/SWtMzaXeme/6c+tMdC8xFa6bjxiAwkjCcOthIwkY4TDLpEQgL4e5Zq0/Nj16rexz36lkj0W1zC0w8aRcJQkgCOzAJIKnqXL7b3vudH/v7SqeqTpWqpBIIwrdWUaLq1HfZ37Pf93nvhE/wwcwYxzjqAIA6iGjG71vcwrrX3yZEnjB5LgEhiCEsmAAWRIKYQSAQMROIAGaAwMXpmQlMFpYAZglLFpakMIkW1vz1Sd68uTnnnoBxjAOoD7inT8qhPmkP1Gg0MDa2EWNjE3Ne2otH9ghSgWRrPQIUv/lLqZWQlBtiFuR5EkoJkBAFhhjMJRgAMIDilEQEKr4DgGULoy3yzMAaZl8Ypi+OmJfe2GuYSFvLuUBuiMgOvF9MoEnNT8x7oE8KmDZtAjZtaqIfS//PkScoV9Yjtj4zeQxWnqcoCDwIQdDaQGsLayystbC2BE0pXRaxgDM+yyAiCCEgJUF5EkpJMDOSJEeeawaTJnAOiMxjkf/W+rv4jDQDDh9u4PBhoNlsfgqsj0bNAePjLdTrE6C+nf7yW49LncGXxD6DPN9XwvcVmBlpmkPnFkRcAIGmxdByaqQSZOX5y/8qT8D3HajzTCPLtLXgXDAy6avs2tV3mTPnaGB8fCPq9VF8HLUlffwA5XjTKI1O/+zVv3xU5EIFQlLABK9SCQhA+fLcQxKBmT9STlNev1Stvq/g+Y6N9LopMzgHkMLm6Q3rt9t+Lvhx42MfG47V4AY2jm+cXtwjR57ApNC+BYUaFFQrPgFAkubodZNCYNCMl/FRv5jy+uX3PDfIMw0QIKSkIPB8Avxej2ovH/1+KoiT9tuT2eZiE7VaLUzUPx5c7KLfAo7cYlrd/fnbe0WSIpREofSkCgIPSZzBGDOths4FQNMcqTD53CnYARTT32YuXPEfZygCfB5q1Ukz928pJcLIR5Zq5LnWxEgsZ0kpxVqtOiYmNlzUPOyiBVZpllOxW185/pi0hiJmhNWhSGhtkMTZOUmjM6T8DP8hAqQUkFJASGcVzpYws09yxucAWGthTGkIlB6Jviss6f54mv2FkQ8pJeJuYgEkWU7xl790t3Gfaw10o3wKrHmOFremOdRLbz4mCaJCQFiphZTEOXSup8GwZCARQQiCH3iQSgAMGG0QxxnIvUsLAoPBTMTOc8VMRAVg3KoRszsRMwEgdkJOMIPCyINSEgBgjEWW5rCWi81CM6zJxdw7gaE8iSD00esmTCRiAdW7Zt0fTEuw0dHxT4E1/yI2AIyBiPD8z/eSCqhCkiqVakC9bgpj7KKlU7nrQYAQAn7gQXkSeaqRpjkDMAzWsKyFkJrI2tQYhmH75S/dz0u991f+eh/SdEqE1he5NQKCFRjK8ViSQeiR70toXQLNTmvaxT4PAEglEVV8xN3UWubeu+/m8f/45fuZuYEx4KLhX3TxgKo1rfZeOvp4SIKq1Woge70MRptFAcrxK57mKUHoASD0OjFApAHOAJlLS7r91yfNbK/4oBc5hjGMzfOZsTFgbGxswftqcQufe+OEVCQUiDwC+WCoSi0AAKRJviR+WN6X8iTC0Eevl2qjbffG9dvS2ev4dxpYzI1pYv7y0T+UTGYoCHyfrfM7LUpCsSPOQghEFR8A0O0kDCAnIdIAKjvy6n82s9VFq9UC6kAdwPj4OCbqGzCGsXMm/2NjztAYx0b3w3FgdHR01jXr+OJvXSuF9XwI9gHyK1XnHnFGiAWBzvpmSokchD6sZWitE2h0r7vqHsPMGBsb+0jJ/UcKrJJLNRoN/KN/PlRRSlWD0KNuJ100D2EGglDB9xXa7RgAMhCSHHn2Dy7fPiN8cuhQA+9t2og6JgA0PxTHIzMwhgY2YiM+e3gCs6Xky288JqyQPphDYvi14RBZppEmetHPDzBqQxHiOLVs0bnu8ruT2Vz17wSwnDgfA1ET//nI92TFU0NBGPhJ4tTe2SUUg0GoVH0wA0kvNQxKrOD0psu36f7rHD48hk2b8KEBabFA23QY2LRppnR86a3Hpc0QEjiMokASAb1e5izMRahI5Sl4vkSW6jTPTPumq7ZZ5nphXX/CHaSt1hnz+KXXHwuFUkNOSsWLUHsMMKFSC5EkOXrdLCeBmFmlNxQxt9JNMSgIfVGQWnIgd3KrOeN+r199jwHQffFIo5ekIwEzIk9JzwsVep1kQR8ZEUHnGkZrVGtRQEi9l448NkV0b8bs/IEfpmr8UFf+0KEGNm9u4tDPG1SNVtaCQEa5NtD5wlKKrduxlYqPLNMw1mTWcO/G9fdm/Wq1jplxw4/bwdzAODbOUF8vvfF9n4krvid9qSSSOD0ryWdmBIEHrQ3YUPe6K7/R/bDdEvThLZqzVn762vekF6qRajVQ7alkYedhQcr9wIOUAlmS55ape/0V35gFqE9WXtOgeOhLbz7mS6FqQeipwiN/FnA56VithYjjLE2TtP3lL91vy819oQ9x4VfJWV9Eo3jxzcd9L/RWhaGnOlPJDO/2QFJKQG0ogs6MTZKsffzV509df8U3skajgVbLpe+N0ugnLlmOiKZB1eIWmBnXX35v9rc5nYy7aVtrw7WhcJbzd67KZQY67RhR5AdhFKz8L3/5mNq8uYlDhxofb4nVb/a+fPTxSEgxJIiQnXW3McLIdwFaIM6mdOd3fuM+JgL+7b9tzTHh/y4c/RbeTye+J4KKqgkpQwDI0vys6xlFPvLcsNZ66oYr700vtMVIFw5UDZBoAgy8fPTxWhj5lSRxoY15NV/BpYaGQ/R6qWbLnesuvye7mBx/H7VFCfQ5kt/YG0hPDYWhJzrthWmFtYwyLy3PTfvG9dti5gYIzQuCAnHBQEVNHPq/G3j5zb3D1aGwEvcyWGvnBxUzvEDBDxQ63STunD596rrL78mYG0Xk/+82qEr1RoXfj7mB66/clp4+pU/2unFaqbhgNc+jG4Ug5LmBtYyo4g+9dHRvlagJRmNRmbIfucQqzdpDxw8gNCdHhocrQXuyt6CpzMyoVENkaWaN5vb1V97z0YYnihje2Jj739c2nvnVhgn3fWysP3Xmo5JgZ9bnhTf3Rp6QNeVJSuJsAe7KIBKoVH10u2n3hivu6ToDaHkzVWl5H9SJ4ldeacCuGFlRHY78zlS88OdBqA1H6PXSXPfSqRs33m9arRbq9Qtv6bkwDLBxIzAxcTOA53Aurp5GPxcec18flsuoUQSfiZp48cheTygarlRC2WnHC4JLECGqhuh2ku4NV97TXe4UHFpOUI1hDJsA1I6PjFSqYdBpx/NewlqGkIQo9BHHWfzW33J79KZtuJDmcKPhpE8dwHz8nxm4Z/wLGO5KUoZIMwlIQZYNFDNyIg48a3VqGdYw3nl3XhC1WsB4IeUuNNAOcQObqYlDP/+uqFa9oUoUBN12Ap6HdzE79RhGPrqduHPj+nt7y6khlhFYjle9+Objw0NDUdiZjOc9O1tA+QJsGdaiff0Vd8f951huMDmJNPfl7nhqrVASQgAeMwTAEkwSxAIMQllTCAIJd9/uRbmqsCJllInIAGzAwkBonecwu7a+bWe/yPHxwfexbJZjy1nMzA382fEVtTDwKnGcgS2DBA2WXFLA8yTibta+6dfvjZdrYy8LsMqbeeH1vbWhFVGl107AC0i2IPRgtGFj7NT1V2xLW6066vXWsqq+emuupGg8eYWwZBS5rAIPzJKIhB8ICOlevjXsAMT9dYUzCTQK/xsRIAQgpPu3NUCeWbBlBkEzQxNRpo3JH7nzDNBKsF8Ir0l/TttLb+ytSE/W2DKMmd8aF4JAgsAGp3/78m9kywEuWi5Qvfj6d6OoFg2lSQ62g89c+qeyTFur7eQN67fly0rQGWiNz3xhD+xfIyQQAAgI5CmfSCmXDaq102Z9CaZn7psXIOdlKjzN/DsqvgtBUJ77bgwjS5mJOCdGyh5lzS3HTT/IXE7/8nLd8fFxjI6O4qd/9b0wjPxhtgytB1vlzAzf92Cttdbkp6674j5zvtqDlkP0/vSvHvPDirfCGp43O4GZEVUC5Kk2nW5yetPf226WjU/NAlSjAdjPr/GFRMigIAgFEYA8dzsX3FdRSBdCapw5PwiQwql+ApAmhsGUATbB8Ftpc/QMH6vXl/d+pjf9G48HnidHCh8WhJj//aRppj2iU7+59m4+n8A1nY/IJWrihePfF4qxSiopsnSeHCJmBJEPkxvDOZ2+dv1dywaqegsYL17Otmd/FbWsEjJxRUqhPJ+QZwyr+Yxg+QjcA/1AExLwfQGjGdqwBhCDbNK89S2e/TzLCa7nX98bBIEcsYZdMuE84KoNR+hMJukN6++ZPB/vPJ3rQgEN/Okbq7BK6JXVSuh1O8m8N+sHTszqLD91w/r7lgVU9RYwXndP0PjjzxKCWsgClSAQkpmRZzzNjS6mUOI0XyPA9whCEpLEWkHc4zyNm1vfXXaATYPrr74XRpVgWGvjwDVoYQioVkNMTcadm67a1jtXcJ3TkpcXe+H1vbXhFVGlPTXYZ8LWVZeAwHmiT9/46/fm5w0qBhoAmsXlxg6sCQFR8TxS1jJ0xkuXTC7NC3SmjNBJmP4M4WndVki+QZ/lpa1oeR7pEZRHyBJrwOixsHHz1reWlX+d4cKPV6rDQa3XTecFvpQCJABt7KkbLr8nPxe+RUvfcYVb4Y3HAt/3R7Q2A+N/zFw0xxDIknzyxl+/Nz1fUPXv4gefWucJwTXPJ48ZDlC0yAfqL0IlQBAgFU1bdwTAFhaiMeyahRTOX1d/SBCKIIp6MWa3ibQuP7s0Dle2elAeQUpCnrI2ZDvf/tqJbDmlV8mJX3hj79DQcBR128m84ApDD1mWG0/QyX/3zGk+W9HIeQGrwQ000cRP/upR4fveKqWkyDIzcPGICFHFR7sdd25af29vuUB1/751FHqoEnHF8whpyot/ED7DczzPmdjWWW0AYATBMGAsGUNGGCbBgp3ZaFmwCABoV0/IlonJSjBJIpIABDGk8omkco4unVkYexYLc4AE8wKCcQnWiYXpNG99y7Za5++eKFPCJyaAbrRiZaXiOwozj7YZGonQnuzGN6y/r71UlUjnogKfP/LYyPBwJZgvbMDskvu7nTS5/oq7p86HBPbzpAeevMzzlBz2QyHT2E4nsy1GGggBeIErUE0TywBrEHI2yD1IfWpFar4/+stzfmn7XrkGv/jZB9IjlszSt7CKAM8LJAkBZJmFNYVbYjFkn4AgEsgSaw1T+9u3HUtLi/d8HKylxnnujcdERYpVSimRzmN0EbkyM63t5HXr7k5LibeswCpP+vzr3wurtWg4idOBf86WEVUDJEmueUScuv6Sk4xzLKnqX8TG0+sqJLimFCFLeVGAKvmL5xHingGIMgKn2ti032E5KOQzMeGcmGUi7waXV4jXxuf+fr6QTWPfOgFFPtgGIPbDSJLWzrBYLMCU5/Stttyjtcc7zc3nrxr73URR5K0w2sLYuWSeGQgChSzTxvh88sYv3sOLLSujxaIcaOKFI3uFkrRKelLkA1QgMzviR8S5xakbL/+GPtfWQQ12BP2+/VdRVWRDfiDCNLVgu7CUKgGlfMdXssRYyyKxAsl3vnZMz1zg5Y3l9QNztk/q4R+sk5Y5BDj0AiltYbme7SWU9kAYCSQJZ5nhqd13HD9v1Vg6pp9//bHK8EhU67aTgQvLzBgajjA1Gcc3rt/WXqzUoqUg/IUjjw0PjVTCztR8kXPnZOtMJe2bfv3e+Fy96uWiPbB/jfCEGAki8uKuXdh1UPAn5RGkAvKEjSXuUeAnzX92hMsdeKHjdbOBNjtOed/+q6iCLIBAxfOE4n6ALbRhLBBWBfLUaGvEZPP2Y2YxVGAhccgADh8eQ/SF4RXVWuj3OoPBReQ2qcnp1HVX3pUvRljQYkH18uuP+zKUK4y2A5PJSl7VmYrTG9ZvO2fnWqn+Gn+yTlLEKzzf8amzVYWRAPxQIImNBaObGpE8uvUYl0D9sMB0NpBNRwcOrAZYhMSo+qGQeWZhzNnB5YcEo9lm2k49csdb2flwrrJq5+XXH5fkiVVCEA0s0mBHb3rdNI9/OXXq8KaigG2Bez1rXWG9PoFDxxuwmmuBlBikAq1l+IFCr5da8oI2AExg4pwl1bf2r1ZC8QqpSCwIKgYsgDAUyHOLLOFeprLuni3v8IUKk5zrMf3yp8NPbwFA0vjjDWlGcUSEahgJShLXLGQgmRZAnjGqQ1KYSSgA2Wuvnfs9jY6OlyrRvHh0byeMwqGyEdxsFt/rpqhUA4+/OBQ26d6kxS2MYn7BIc4mrYiaCPOhqFoLVRyn87oWpBQwuW1fv/YPbKvVWnLXk2lQ/clq5UmxQggSWbJAfnyx0FEkkKY2zwydHPvasc6eLe9wq+U+MDqKi69/J52RWq0W0PyD13jsa8d7ubYns8SmfuDUzmylUP5/EAl0JnX34TuO9xoNp9rPMyiGFrdw/eVfjLudJKsOhfOU/hCMtiBQ9cUjT1AddTQajaVLrFLdPf/zvUSEqpNU87kWQnTacXrD+m0p8xeXzKvqJaj2rVPKd5IqSxgk5reWPI9gLCNNTIfePtHb1by4JNTiJEYRSRgDmne8ZQBMPnRgTSSAmh8IKq1fZufE9SOBLDbdh+840T1ft0O/UChdEK+8ubeTJvlKoSTNTiYgApIkx9BwJDvtXkREvVartXSJNY5xJ4kCrgwNRyLL8oGgUkqh18vYC6jjbmRpKrDRcKbzt5+8THg+jyglRJYuDKogFDDGWrY43bztRK/ZPAPOj12JIRWcsuG+Hr71RGwyOqU1dFgRKAqX4EcCSWy6Y7c5UJX5+MtyC9REq9XCtZdv01qbuFJ07JkDFkHIshxgqvyXv9hNLqmQFw8sZqCOUfzFW39CIIqSJHetdQYw/yjyYHLbu+aybaZUnUsm6k9cQVqKFcojmaULVfI4sztPWTN7p5q3Hc8ah4qN8DEv4mk2i7U4BHx763GdTolTeWKzqCIQOKOk+/BtJ7qtlvvccm+ger2OBjdgU3S77cT6gTfwc1mqURuOhBf5IQqrctHAGkfLib48Cau1SGTpXELHDPiBh047NkSq12g0UK/Xl2DuOiup0QC4qofDilRpujCnCisCWcoZ2+xU87Y3TKsFNDfjE3U0NzuVvvuuo/x+W57OE5skPdt9+LYT3XrrwmSdlipxDBtx09Xb2AJdzxtcSlY2HwEQvfLXDWzaNDYwW1gNUm8E1/ow67YrOjcQ87xtqQSQie4NV97FLV5aanG9SMx7aP+aaliRQdy1C4IqigTS2KbHhZ08eMcvUa9fuEW+GLiX81EdBYCp/jDPBb4yGo0GYrky5vbJKIp8lST5nOsmiUYY+iqLVwRElLa4Bczi1WIQtwIR8m4nqFQCmST5QGkVRh7ibqY/sCJhZtSx+LdchiQaT6/1laJqlswPKipAlSU24bcvmzxYpJOMj+MTfVB/mg5/ONyRCBgb24jNa28FAT2pxDzvhCGVgGWOmHmga2nOX06MTZR1Z5GUYrqt9GwZIoUAs+19Zf1dWEpjL2agVQe2/5vLiMFDJAiW5/+sHwmkMae/lq+aajafw3JZQx8XYn82j/zyH3WXmWF02ukkJgjUwBuLeymEgP/qscdVk5pz1KaY+SJdjvOfvfmYJAk/7mXgQYHJ0EO3E5taFqbufIuXVuPjReQ+FrUokjJPGbSA9ZcmNo81prZuffXvFqg+MklJAFr48pfuZwFO/EDBzt755Jzi1VoIzRSUum4BiVXUkpMMq9XQ9VoYIK18XwEk4quv/gNGQfSX4q9q7F/jCUVRmtiBbgUG4PLVrdGxmHx06zFu8Keg+rCOsTGn2mRFxe1OwmoAkSciZJkBmMPnn99b+C55LrDKxhvPv70X1nCYZRqzyRUzQyqJzlTCrKlIP1y832rDBLBv3zVgpppUBGPnca4JwFogz83UI//iTdtqnUlF/vT4MFwfTTA3cO3nv2FhkUaRP1CrpEkOz1dSfIZ8AGi1xucCa7xgwyon3/OlHNS11xFpHwykN37pbruUXOh64X95R54Mg4rwsoQhBk8SgecLmJw7j2x9O28c+uRafxf3sbEk6kmW6YFMm8ilMAuJYAF3gwOWtQiqtQB53psrsQoHmSAnrcbHNy6asBNcWjGTrRrD8xS0ulhY2jPZX46c6NVbQHPTp6/4o+Fabjf/zeRU9tmRIROG/lxhw0CaahjD/s/efRa/cenotAUryg+Mjo7jed4LgP10QIe4krRnaW60bzPnb1mcKBkfdxgNFaIwlFJncwm7qw4BTGaZSLTHR4uWQZ+qwI/saHEL/+TaJgCR+r7CnBlo5LoJer6SWe/9Ig7UOqMKW8X/+G95nvKkzNJ8oIvB9xWYKL3psm1ocWuR/oWCsB9YTcwczSut4HLSteZe8/ZjpgxdfHp8hEdJmYxN4978PbfCyANb+NNCpFSFZSBG51kwNFxBO48HmqFxnEF5SJeE+vHCGWFkGEQ0MGmP4bIVkp61qRW9C9Fh7tNj6cdo3WmkId3Ou2rEBIEnZ3viicjNOiL2Dx1qYPOm0TMSi2i0bOzva20GWIOAHyjo3JioM5k7MC5ODdbrwNefuALMHPE8/UeZAaUIYO4+uvUYj44D9KkKvAiIFtDiOq6+ugkQUi9QA+ocgDTRAEhVvjAiQS4zVbhCCeCLf/8mCZDKUj2Q/ftu8nt29dXNIgFwcZYgEbBqOPeVT6qo35sjrXyfkCbWdE/HMXNROv/pcVEc9UKfWeYsjbM5Qsfli1lElQDGwnPCpA5RmpUM9ioVv6jpxxz/VZbkAAo1uMgXX/brZCsi5c0fYZaSALa9vff9zTTR//S4eKAFACL08yzTVikxN+uh6A4oVcGzAKiSnwkBn4QYYK254T9pmrPPDl0TY2d3ipZmZ+PJzwsw/Dy1A8Wo8ghJYixJJKXq/PS4AEd/o4kluR0IjUYD133+6/zy0b06CDw/z/WsUzueRQz1oyNP4Cs0CjFKo/g5t0DEymiLQZE7F4ik/Dev3Lnonkljh0tPmR/4kSBtBn/Oc5Isbt76Frdan3KrC3U0xlyqUuMchlJs2uTeiyXO5wNmlmkwQ30mMHLaKuy89f8JMNSg9GNC0UoQnBMRDh1qLMoN0CyBVZihYsAOEgJIYwuCSgBXovXpcWGO83HdvPeeKwXy2MvSNK8O4lnWMvzQQy82EoBRAEB5rvzQQ5oMcIyiYP3EubvIIrztRflu46kvEBN7Rg/uBOMFhDS22cO3HzXgmfHAsqp4Qx1Lbm9d/m3J82b/7Yxz4+xxyOnPDzgXMzA6vvj7LOsL/69T1wAALl1fw2vvPTfd62upz7ih7sr+F1XNzU5qbZhwf7vYa07UNxQyIjcmJfY8SXp250Zm+L5EluYegIwA4IXX91aHV0TV2X2uXLGEhNaGBfiD6668d1HxwelK5qfX+r7ECmMw0NMeVgSSnmk/fPuJuHHok5dmPOilLpSbv9zd/Jbz3t1UxRZWH/3lyqjqe71uhpm4YgyPVDA12UtuuHLblHLEnSTNU1rt+wrGGPPbl19mHSFfvOhQ1iovUjA9OwdZTg0aEIQbEXd4prT71lOrpaek0MZAsOBVn5f6rq8cXdR1v7VvnZKeJiggy2F33/b2jGay8ourlRFM1hKEBFCt5mP11+b1sY09s1oJSLIG/DmzUm/d+uq0cfLA/jXCD4XUiQGE4C/kq/TWra8ONGTGATzwv35OeGHoM7MkBWINK5TNT39g8u+P/nJROWcM4IH965QnNIEIAhLWatvse85Bx46nr6BQWGVzA+FJJJrN7juOW5ytYRwB40VF/Itv7DVCCI9m/RERwflAIZlbEC5fmeQgxyiKPuDWQhONYnyRDqZpriTg8YAIDsM1OgPDfM6sNADQHCukXWGmCqKhoEIrlZQrmbDq3ROZLIFxtkMoM+wHamWg1EoPYmjG361ZDQ2xwvfVSgGxMorUSttOKkRO0s4xQsY3AJZG/IhWMuzK99UkAcDWJ68pPcyV0BcrlZQrBfPK98VJUYKpH1Tbnv1VPPzMuppfCS5RHoaDiqiGoaj4kagRyZUrLvEueeipNUGz6RqiDFR/xc/HDqxWvuBVQsiVYLHSD2glWzky39qUz+VzHgQVWgkhVoZVWumTDfrXfBFeB0BIPdgLUHRlBuR/fft9Ep898dcEYmH04FBL0W7HYAm+gGYTuHvvF8AQyhrHr+ZIM4/AhGzr1lfdg89J0SFYg6JbILNUWEKgh9ga13d9nq3I1rj2jmnCUIKrD+xfI+r1wcDl4l4ADCpbgTVcZFnOulaj4JoHVtOQiVaGVVGxBmTZPVeWuNNZwyAiGVbkyINPra40aZ4NVEh1NjIIKgLGcOH5tpASynxxtVpo8zG75yh70i/dmwWwMaac0jb7sNYCAPXSnMSKzBIshLV2QJYgwO6h9WL9ouVDDdekJGZhDc99HTydSqMXYw1eyNihyRl+KEhY1IhmDmQ6n2NszOFqrAFwTiNRVXnt0zm8UMAa1lliOzrDVBpzr9jwSBKDqKJqD+5f55dFuDM27OZyQCgHJmcIuHaVxrp0IwUZAM44WFiVLn1Bx6cFgrDOtcBzBEEBOCJjhMh8IRiWnGSgOQjPcg03q2FxlTHTL0ZASE/QoA4qRECWWlgr9EdOTAWQ9iz8UISN/Wu88dHBKnGpx7ufuwbNJsBfXBNGw9LvTmmEoYTOOGeypx6+/UTv4TuPJQ/ffqzDBqfAbJV0AwcIPNRobUCrPpPYOzV4uRIEZS1gGcZaWCkJWjMMOGg0bnaKZbn9gcXLz3LBudYQUszc8FRqF4JVVgq2LIjEnIT5coiPzjVA7hT1+sSiRSYEKalooDUoBGANc+BJ81FiiuDCSba4J2YMlS2PGuc53fbSd15Fo3EzwFQxuVMdWjOz5qnmrW9xo7UBrRbwxBNA847j2hjuSiWQZwzPg0Q79vt53/S6sg78QMBz9LnH4CwMCXnKkIIVfu24JAIaDy3vWk1MbChElrQEYjeEgOdGaZSAFJIEM4nBVa8MIQjM4EBKW4r3Jbw2STSAlFAxe0aQzTseL/28y4EoN3kMgDWajQsrWURVqX4+tSZqNgFsuvn8HZKfP+FJ5YLvYSRgNLLmncdNowE0R1/D6CjwL/+lAzF1VZImlis1gaGVHuDGtEzThHrdld+zpYAZyBILk+epECLlQr0FkQQHIrgQSzZWvKQK5QwCCxJzNBwRQQhRQMdaIcR8HyJAEHdEwv0nX5TrgweX7xM7YDHDNP/gNS5V44ctqdzzM1viTjm/L88Ygqja2LeecPi5876OFeQFEYGo6NgnkZWtBfppAQA07zrKgriXZ5y1J/OYGTkANAveSgTg+OVKKFIMQFvku/6nX9rMcB53Lbu5PQDYAW/5N6u70dMnTjNbMInBrZZIEAwbEpAEkpjnQwKwzNFlq7gkaGf30vaZUhjsahAEkIXtN4U/7KPQ/PS3+pJU50iiqmveFlaEsCKtNpvnbzQIImmLSWKuITzMoCUs/VZjt53oPvjVY6cf/P3j7YdvP+6qoJpngMjWBp4v3MQx4TJNdt9x3BJR5ocCeWIAgjf2g8ucOlxGo6fcAJs3NwFiHjSPhwgQRBAQEORk00CpIQggMF9LW/tBu7AKKKt3BQu2vJA6+mjzRAv/2pVRDl+KThpbVi6LFdITlW89vUYRAVO/mDqfS8jSZ5NlFoYdpVjICm40gMahm2dYhPU6cOe+awDCtBpEbrK+XZKWPUWjSABQwQyn87LLLlp4UQkkrOFCC/JAmPI5mBd37rsGABEXo0QGeY4tcBEkIBM66NCDX3vTas09PxAwluF7AoJRA4DhVfI8zl48PQFWA9K3Z33mZhNobn5uOrRTqsFLvfeUICgwwxrWeOdtPW1gBJQmsWUSBKMZzByU7okLtivP8nsh5OJE4FKuNzT1SxAvLJOI6eLIbI+Vs1RD1Uu6xviBQJoYhJH0H3x6ddC89S2c8x6YkRwOGL3wLi2brw1cNysDLxAu00QibTYLJxmA5lePMRFlQeisSiHgNf5knVyCT3vp1s9CMLAEdeYh6JxOMvD4VcBmgFwYgBcFsNKwU7z/o/zg/rUdIWkEOWAsg0C1+/etywj23NxC1v0hgeH5ArnWtJADs+Ra/Y1wm4UDn4GAmZ3/D0gbB1aj89j/5iafVSvMzClbDlBYhwnrAEDvAiVOLrgcLBh9nqb5IpG85DWtmRDFVKN5b4svsgRkl5FxPH3wqbVZVJV+0jMIK1IiNhUw8TlarprIuQ2EInAqFmwm/MD+NYIA6rK2w1f8kkvOap+5TEmGylMuIhY0whZcWxU5ElOEkV1NgXOyWqawwejVsfwtn/hs9NgShD2L2l8SxS4X/8RbjsHR/HJJEF9UwCoJtQY6OrWu32ZqQUxVJshcM2jJm4G1NTxdCQ6CPx+oAUCyGA58umRl4F3Cb64dmjaEchkEkZge+RZEQgahVH4opR9KGYZSBYGUJNx664yhJCn8cJ0kAk4VuV/Lx7B43s7KzICQzEpMN8CieQCwVDQ7avHQ07CCaGB/LXLkXSzlvIoslWR1rlf8Zrz22nPntTPHxlw4avfocf3gU2t7lZqoxB3r0moYxHbpsjvNbMYMlooozxhECBp//NnOON7jMveq7PTc2HcpkWDPGEK1JkQ7s9MDMTGFwHnvAWstp/G8msB5iAxQqQkksQ0A9H6eTC7I6959d3Ck4bWNc/PD9r1yJwhEdp53z8xgS6wsLKzlgV3j2DKYicrkvsV0litfLheeLJ7Pl1WcaTHpyG6WsrV75s1Tem5ZduKGMpRjvW7Sy0PlkTCGz4kMNg7djObm5/ihp9ckQSSibtsgqkoR21p1fPS9Tvm56UkV+4MhPxKUxga9LoOESQBgw+nVCpIVQCBmjcg/RbZ4rSfdtyi0iBMBVFhYMquEJNKawRZhvYXeP8BR/NEgu4KIF5uZW445ufGza6mbg3hANReRw4wgsCIWXPYdnf0h63wj9LOfrSBM5xEubttKQXY+lFjLALFsNG5Gs/ncYgxNCqrB0EM/WGvhhlRx/41KAco10m/ffixrNM7dKmg2S651hB/av6br+WJI987tbIcPP+eSBJ8V3TS2oecJShMLz6fK2NNrOCcZX5avsG/Te8LzRFUpESY9i0pNodvRybdvf1sDACnh+4Eo3GGUlXOB5jlM4+m1mR+KIOlZCMlqw9Q6OXr7sTkx2SxlMBA9tH+tYgKJvmVz1VNMOheGfnGs58DnXPm9uEokc3LCiOdkHBtrYSyzEJKsNXZOKgUzu8ZrBLIjzppZUkjHwgxk6Ox8Oswkssv+mhbkcdOqnOB5FAaBqAShiPxQVMovpahSHZYREful+C7/br7zUsEFBv16dNRJrauHT8S9ntF+SP1ckzGvCpjeeQ5YY+5czS3HbK6prTxnJhlt4QWyqqy95B35wSopxSWeJ6IstahUBdLEGk2q3RchCKxl6NzCglPmPpdE39ed+64p7oFSx5sZfiBh2QT90QZmwDJBZxZKCS+IRCUMZq6pH4hKWFERkY1KC3Z83BVUKKkFABqUf1ZmkXqSrDAWPCcxvlh+axkMJqN94czkxQ9usWSNtXOT/MqKDoCFL3JR8psBopeiqutxHlaKWGa5mtyPnAEIIaaoIhBVxECrlgkUVQQEQJnigdxidBQQQJtACCvuiwDhe3MEMUXV4h4B4Sk7gxa0WsB37jiWdLumLQU4rCgYw/ACorAqlR8IYiZEVelGt2T61O7bjrpx7k+tVUEovDASMDlsZ0jnRH193vu+nnznVTd2WMdpljIqNQnPJ5AQUePAaseXBc6saVUWWbzzrelMo/6zn91QmLkgz1cDxzWTcDlZ1lgriIyxzJgdVHRZhhaeUjDkii4W420rOZMnpNHZ4OZqlotpp8aVn/X7dcq/JyDttnWaxjaJY5MkqUmS1M75ylJO4p5OIVzQdsMEAKa017VJt2sSsIuplanPn8s+A4CTbkcnzJwMeXqOL3O8aIfdvP1EnsS6k2ecxh2TMBB3Tjmb49RKl9cumLLulE7j2CSWEdtMzgisj466mN0jd56Ie8acTLump3PWOrc27lmrMzbacJrnPNm45fipR+582zYO3Vy8RBZW27TXNYkQ6JQ58YP1ePFt67sM5k6a2rR9WifMyKFNGbfV3cm+NU0Gr2mecRLHNrEW6WwOTMzC99R0YL1fw0lBABFrJksvv/GYYNAl0pOk87mSq1IJEMfJ5HWXb0sXM39wugL62XVkU77E80loPZPDMYCoIhD33LSFi7ZCZ4lT6Rc6ZlfgNH54BQVW4Yror7i/zdjF2sC3HBP44tG91Votqg4a2+z7CmmWm0CKkyr1K+zniRVCyDK1vR8lhXhTANLFWPOlxiI6xg/tX2OkFKI0lft9+UXOtTdfTGupiXZjY2ekRPm389UCLlQnONvQ6K9RxPhcZ2P/uWZ4zWdby6MzZxY2f/8oz37W5tjcGsf+dVgs4GavXb8nvzG2tHWd/tvywd1g9cGN85QApbBv/NnnmZhbeOnNX66sVHwv7mVzPl0ditBpx8kNV26bWuzY1lbdFXE+tH/NUFiRUdKzc1oMCgWYnDkQ6v0HbjvKF7pJfr2+PB7oeh0Y33BG9Zzv/XzYEqreOrdRxczA4cMNRF8YWRVVfOUasc1UhcMjVbQne8n1V94zJYhGAWaj1NwsUgbBWgtBkMwN1OuLq6Yss1iJOXcJ9nMlgdGAFwjSRvvzEfjlPJYrrDE+fv6g6r+fj0PXQufHBIYuiwQAmWd6oIHMbAGQAYreDUxsBvmyAEaWaliGeumNVeKG9bANbix+yKVFnqWWhSCys4sqyDVbiyX5AFKMLc8LK4+vfx14s4MV5IZrEEnozKItGJ7noaYzMDNyEvA8D5RrtHUKrXysJAZLH2QyJD86gN5XbsEKkiAuGtixRTvPYJWHFUKCrAGEwaRVqEoFJQUozdD58Q+Q/aNbsUIQSHigPEP24wPoAMBXbkWFBCIGDAOZsGAvRJQlsBBIYRGSBJkMkz9+Fma5JNu5VFqXTYwz+Cr0FWVZPrBtZJZpWHJGlHDoojzL5pbTOL+EhecrUp5LVtg4fnaXw3SU/s63DANGqcFRtjxnwHJw/751tNx93FetAhjIlQ8PgGGLQFqsYANtXR6nB0IuCJ7VgNUw7RRcUERlNSQJV54GidwP4TFDg+ERsLL9WYABYy08EvCshCJAgeFpDZAoCKur1VBGQwlyP/sfbocgiRoYOQE+MXwi6DyDAkHYDDkXmScxuUzbj1KyffazxUABy54fqoFqUkqBJMlBWutpYKXWmCzJy+KJOVIrCDyUKqv0Z5yVZxVFqERIXWO1uWGaXDOCUIpAOSfecqUpl7vbWsRaA8zoGo2psArvPx6EZYOUCPbHB5Ayg41B9h8Pwr44Xlj5hNxaGNYOWEKiZyxgLGJYTAVVyEsmIa1FjxjMFpYIHjOs0YA1yP50/7QlpJmhYaGFdbvZaheMrrQxZS0SJoj/8APkxqLLDIHCuWw1Os8dBH/UPcMOH552AHsDqQ0A3/cgCLp21WoLFAUPK7KuAUG7lsvzmt4es+uVtCieVVhJ1tgsnWe4JZXmvKWQefmT0pRwbjQChJKOAmxouEDl9AZigPv6zTHDc35AEKST0py580gGLEMwuz49iiCKwIBhJwGpb98Ufi54RDBMgFWOeliCtAboeSC2iMHoFm2dEiKQDDECwJ7uIVsWfsjns0ldP7Q/f+MJAuBlqR4gJNw0MDDpq2kULR53vRuuvroJJmip5MBshCTJAMB79fXHiAZMelpIHYor1uZWs/b8uWcuC1eFIn/sqdUe0dzq3/M5bJ8TmRmBNcBrjvux50N85Vaskj6IinhWw5XECwLyIlA/nauoc4AEalKhlnSR//hJGCuKuCXDwAGSCbA0IwIBCUYOhoEtBjYQiASga6AfH0T+pz9wHPNHT8MwI4+G4IOQvji+TJvtPGjGxjHHrzSM5wce5bmey6+K4DNLzgBXAynO1ORzNkjMuXbLDN9XpD32ph06i1SHzc3PAYISIWjgznEdmQWYRGXac75Mhyh7FBCGSSLKMnQLA4GM23iJ7TNwXnwXLg7GqEgJWQ5YsGY6VigsIBiOgIsyIkLQfggqqnCm06/qdSctSSCSCl5ZElc6rWWfgrj5zEtK8wSQWFrb8wtnTpdhMPaDwBs4WEIIgV4vBed50blvAqKcoUOZzeNeCiIxkGeFkQ9iUTQvHV+SOiQjkySxPJBrkevqpxSCB5+6XA3qWXB+6CoAlOKDHx9At5QY1sL+6QH0rOuOSQAgcwgqBscX4X7XiiQAlAIso80GRgB+owGwBYhAglG2H9HcB5zeKohCWnKhCuS0N58Brwv+x1+D/Ie3wNt0hpxbnaMsusGGDR8dppjd9JGf/7wBZgR5lg8M7PuBAjPrH//vsVsHakKMjo4DDMTvdYxl1kE4uJd3lmowELzyyj6M0vii9HaZhtK886gFOPGDwWM1LQPKFyDY6rJKLXbjFtki/dEPYX7vzjO0ivqAXabhWEAKCfzoAE7rHKkzmAEhi7GNruwmAxA0mwCZaVagdQYwQROXmdeATuEKhgOcNjl6ACQIsAwtJPDLAGwZgSKMNKc9NO5aZD/6moDxYmJJO1rpKV/KNNUDuLJrzkdA5qaGzRp5snlzEwTKBjlKiYA0zaGklHYk8QCgNd5aktSyQJwljEFZ34KAJLFQPgWN/Wv8EpDnekw7WwUUEQAJVa8D0Sngn25xXBME+u+3FBKFIH/3VpAgeNYC//B2NwZbEOQ/3grBsQMEEZQFMiaor9wGCQkpBIgJwjJyhmsAYwnyv7sNpCQ8pQAk7nNCQPzjWyGNRCYV8KsZoiInPgOA3/1dQACSCDDS8bEPvf3AADUowEEU+YOHjwMoBqam/SRJlGQLAIxAFsf5vNeJKgEgivyeRZLKZtOR4u/cdkJbaxM/FPPmSQkBgFBrHFh9Xo1uiYAtWwDLqIEAYlSnhiDHx4FUIFBFP3IhUSMBCEIARsSMUCrAMxgCw1cBiHNUIFCzrilhjZ1fiZkxDEJF+QC766QAKiRBUsL3GSEDkSDAAjVrEfkRYAiV/7QfNksQexGGAEjSTkXbz0MSo8bunmu/d+dH20V6dHQUzz+/F2xtMGh+JQB4gQetjfnb025iySj6Rp6Uo3crbZPluTZ+4M1RdcxAluUwhoPn396LUVq8C7dMi5HgXj6P1CIAecoIQqlsLirnK7UOHgTI4pS2eF8YfPC+cjzI5EhCgfdJ44MsR9sS3jfA+8gRWw8nlcX7vsaUIpz0Ld73DLq5xunc4H0r8MFwG7kifKB9nIbBaT/E+wyc7mn08hyTEHifJd4XQCKB06TxPgOTZHFKeXhfJo74/+kBtC1w0jI++NEP3b2lX4BRhA+0xfuwOPUf9n10oCqHcKlfEX4QeDIdMM2e2fk4iUT2T65totWqT2NPlTu81WrhN35jFC+++XgWBCpy8aBZ6jDJEYSetNr4ALLFpNE45Dup9dDtb+mHnl6ThJEM5wSmS298ZqE81BpPrc1GR4/r82n4+qODmJOV95/+damZB3p5eAHvD88IVs3/mcWeD//+XxWe/YLQP9ecdW8HPzpg1YvJuYY5rPgKgyfCEZI4AxlOHe3Z0G8zTZ+pkCoiTeJ8Xn3q+wrW2rA0K5d6GM92stSyUgNShwkwxvUnZYHhxr5Li8S983AMNoqvGV6/vp/1/5tn/nxG+snszxXfGwudu//3Az7baGBuzlf59x8hdS+LZ3567HtCEoI4zubuIAaCUCHLtNGR81/1p67TjE8S4fm390KkuCQIPTl7YFM5E9payxLig2sv/4Zd7KQK4Eyy24P711aiiqjNJ7XOtOq28cO3H2+3WsDohehS9+kxD7CcJnr5ze9XqrWgNrtNe4mFoeEI7XbSveGKe7qztZfo13XMLdx02TaAKPF9NXByudEGtVpIhk3kULr4pp2uvOpmiCSKk57VfjCYyBO59o1BJKKH9q+pjI4CjcOfvvAPy3cF1PHzv/ljsmwiJ1zmDpUQQqDTSSB8MXDovJitWd0PRdLtpK7x2gBwZZmGZYQ/+ctHCRhdVIintBCbzefQ/IPXmNi2jbaYr+icAeSphfJE7aGn1oTNza6j3afHBaftICJ023lQqUQDSTsxI6r4gEX221/8hmk05g6VELNB0+AGfvvyu4w1Nosqg7sOpolGtRrKwFeBu+j4InYC45Gnd9C3n31AAEDzjrdynXMvCOeXWta6rs1K0XBj/+rgU3B9ONLqyJEnYK2pWGvn8XcQjLFQRDHRmXjiAhIL2IiNLrIqZTzfNDDA9fQ2BpVDxxsYG5tYsMfDvn13goggpREe86rd/2a7BIAVK36tE/esXghcpiipFkqMPPjkGgeuxqcguFCediLCKWHCai1USTxXWqEYOh/HueGokjoo1s8OrDo51fZ5z6RxLzPhgMQuIiCJM1SHQhWZ4ajZbE67/89YPA00Gg20Wi1s3fokvn+gQUyqqjwpSIvhffvuxLbRF2HZTuaZ66Y3uM0EYIwLwniBGHnoybXhdDyRP+nS48L2uJ+tUSbGJvCT9/YTmKtGDy5kt8xQngQxxdd+fmsxbZfODiwqsHvZZdtAAj2p5DzN/gh5biBA1eff3ksTmJjBtZrNJprNJkZHR7Hr2e0qpXylJCHzODvJzDgZfqYGAN+54y3DlifBDCkwv+QyDGsB5dPwQ0+vrYyPYrqK5pN0lM9DBNzcOFP1dMGl1fg4ms0m5MnJSm0oklk6WFr5gUK3k9haZmOXQzfYyUjzoZeI8OfHv09pbi/xQ0/Mdpj2m5xTk73ejevv7ZS1ZwCw6+B2z5jMeMIPle/XdK7N9i27Pih/JyBWSPLeXx2+xqOj43joqTWRH4ghnTPmmajhUjTIBax1Znrv6Es6TxYjU0ZHP/6g6n+Oxv61VSnJN1PidPOuo3whq3lKv9ULRx+VnvRXAYK01gNdDLXhCJ2puHPDldt6C1VtDW6ZTYRWq4XfXHs3Q6Dn+xLz9dHq9TJ4nopeePO7apRGse+VOwvLAWElrF3CoNBqPQWA9zy7M9q7924QRACAtUwxOjqORgN4+I4TcZZy1wvFvH21XKMSIMss/EhWLvU/WPHA/jWi9Ox/XKVXo+FU++iom9A19oO1I55PVT8ij4bMisYff5bKmOuFOTY6bWNlLYz8gaACXPpxZyq2gRIxM6O+QBbivD2qJiYK1WZV3O2kJgy9OSKZiGC1QRB6RFbWmFtY374UzAw/DzrGWCai5Jtf3ZVYw5nne0P5Z6JLiBBa2Kkd/2wP7zq43at88T4CgIfvON5NE9MNIuHyWuYBFwFIeha+L31P0qqH9jveVS4+f0y4V9ngo9ksClp/sM4PhFnlByLIcka3YxFEwhOV2kjjwGqMXQBwtQrH5otvPh5ElSDotNOBoLKW4fkSRNT9zbV38/j4+MDPLagK+y86SqN44ehjYbUSDfe6yTwnY1QqIbrtpH3DVdvifa/sw9Zrt2LXD7YrKQV6l3k6fDtfRS4rMmdtzY7b9hgA2PPMziESLMPPdE7/pPNHGB8FHnp6TTUIZTVPLea1eIsXo5TrwWNyThmmU87sKxuaXZQzptmNciu1yAP71whPihoBoZBA0aRt+hkrNYGkZ9OJ2vHJ8VEsW+l/Wcr3wpt/KDziVSSFyFMNEnOzRKPIRxynehWrk//mypNnLQFUC/1yVIyiwQ0kaCd0lKJKNfDibjrnbbnMBw3ly9rzb+zNbrpyqzl0qIHNm5saAPYc3DEMJsS512ve0ZyWJ7ue3S5dtXXNb7+HyvgW9J740ddx11f+qNt4eh08n6p53tdqcYD00oYBA4ShCLKU/cb+Nb2MKR4dPT49oGBi4uIoDGV2hRGj5PJJGgdWExsZCWErfkAijS3MrI1EBPQ6FpWaCDa214xsaJyYXK5H2VjUC8LooXC4IjrteA6ogGKmkjEQ1nTWX7UNrUWknZwV9yVB+7Ojj3tSiZXa8EBPOzOjWgvR7SRZ/Mup05s2bcTY4Qmsik8i/tuhS0Ccbt+yuwMADz99v/KlDEEImdkKIZRhOr1zy3cyYLobHhpPrYmEoiEUefcLSR9X2+by5+PYWEHUSw2S3Xc4gJU9FlofthQrRvYCZ7I0Gt9fTRgRIYEqfkAyz/msz2eZMTSs0G2bZOPQ8anz3SzFxsfzbzwW1arhUNxLB8KhJOztyV5y4/p7F91mYVFLXJ7shSN7h4ZHoqg91XNlJgPeruv1kHRuuPKe3iuv7MO1127Ft/c/IJTHNaFEbnOjpBQRQNCZPklKhGBWO27Zffp7z26DRqR2fPU7uuzl8ODTqwMlxLBUgrJs4bbYJd6VIiiPkCbWMji2KZLv/M8nTL/15XjkhZFkJYjrmGmtNvatE+RxCEbkBUJaw65oFzjrpvF8grXMRnOHfnEi7m+Cci4+KyLCi6/vVV4gV1rLZIwdWCjheRJGGys97+RvXfZ1CzQWNb6ZFrdQDYyNjWHiF/upm7VX+b4amP/seiQJSCUQ5/np37ni3qz18wZGr27ikR/s8GrD0cpeJzYkxBSsrQopYaxR0tLp7glPYw0QIl1FJLLoV9qd8BfPY+vWV/Gtf7VGeSEN+6FQcc+e9cZnAMwnJLFlAjILSiqhznb8s7d5NhDKZMSJumuKuJiXVg5Dmv7bAUC9b/9VFIrUI0YIUBBFgnTO0LlrSreY5wgrAnlqjdViqnnHm/n5uB6cthnDq8ciMghWhqGn4m46UAW6IpoAcS+duuHKbclipdWigTUD5W88Hvi+GtFaD7S+mIEgUNDaWu7qk9f9vXttq9XA6GgTe57eEbCE3HHL7t7e1t2waeVXtDG9Hbfs6QDAdw/cK8gLVgJCJknvff2LmsWmw2hufg7b/+QyCkM5pDwKrQV0zmd9+Vz8R0jA992o2zxnC3AGwxlJzl8betucLZFwdkO6s27EJ9dKK6AI8AHylYJUPiFPrZvQtYi+3k61EzyfkKU2zWPRfuRfvGnPd9J9aZC9dPT7w9VaEA7qczWtAp32SW+48p7Jfh/lsgKr/6ZePLJ3aGgkigbl6fTzrV43zauXf+HURkxgfPw1jI46srHrmZ2RkiS1sV6Q+6enfgn+3DXAqVPZyupQxetO9dLtt+yeBIB6vY7xvlLgxtNrQyFQ8wIh0tguqpPzdDdJOqMm2bpZyiBoAgyYc4ANWBik1mLjW3ahZnD1FrDh1HqCl0gLKYhYCoZnGQog6ftEQjpuqLMzHV4XuxkKKcXWcqd524m4vOb5gGqaVx15vDI0FNTiXjYPXwZ8XyLXxqrMO3nNr3/dNrCEZjBLBVZ5E68ee5Iseqt8X8lkQFpFeVSHQnSm4viGK7e1Dx1q4DCA5uYmdh3cWf2VX1tVfe/dDzo7btndA4BHD+4cYWYBkLBs2ztv3ZPtfuaBqh/KIE1sd8eW76RjY67LcmPfOiE8W2NQ6PkCaWoX/TDli3OVpG7ouRA0HTbK3VhJZoLr+EvE7n/J1fO4H5Dz4jEBEJ4vysGasIahtQs/lddZ7H0RA17gQK81UmNN5zt3vGVKdb0cZP2Fv3os8ENvxBhbNC8eVIBKUEoiSfLJm67alpae+aUctHQd7S7yk9cf98JArAQDWtt5wMWoVEN0p9LODVfd09v3yp2485pLQdTEnme2D1mCqZ7u9pKVw1XLHALowHKFCD0GVcPQU3luYIzR2orTD37tkRmR0Qf3r/OV4Kr0yAOALHOiadGktiww5DOrQeQWVojpmkNXlToNSj7TB9Y6x6HlmedYyj2UgFI+FaOSrbZGdJu3v5nODvMsA6g8L5ArAHJtQQXNE6arYOp0t3fjVTPDdBcUWP0q8fkjj1WGhyu1TiceOMOu5AlKScRJPnXT+m3JIW7g8NhhNJvPYfeBBzwSPMxgofLspJFBpTpSiTpTHUOCNFsEZMzp2lCUT7YzIQTVNJveg197NC97xNdbwMaptaErxSIFuB7m0w93Dk/IfQ7Isqq53yfJfeOHzsky4zPn8X03MTJPrQFxb7Km4/4mtudrtR7iBjZTEz997XsyrPoriUi4APM8FKYaottN8lWsTv3sZz9BvT5+Ts94zh6daa/863tHhlZEQWc+vmUZUjpVkWVm8sb129JXXrkTx46dwn9599fw+RXDFWYbKZGd1NYf8TzP6jzpAWKYSSQ7tuzqlXn1ew7uGKoN16L2VHdyx5ZdaaNVx2sAxkfH8fUnrsAlVRNaoKI8Ukq54ZPWLF4dfQguLRRdZeD5AsyMLGdNzDHiSlKOMj5fLjVbUh2eeFQO1YIVUkqZxtnA3cBF5oLRxuoUJ2/80t32XFTgojzvCx0TYy7HOfTFVK+brIwqgXK9H2Y1bxMEbSw8IeH7auT51/dOXnvVtvQQH8If0WYA6D3yzI6sY2rwg2zqrdff5M+tXb0CBDMTVDsrYARpkmLaHpzYgPFiS/8v//INEFHSaCAxq9f5JjcRg4KwImANI8/O9INnfDhO0jJiUF7P8wlSEpLYIE9tZhjx35jj6ZNbzxgE46PLC6oXXt8jleevUErJQe9n2k1U9HnK83zqpi9907o8q3O/kXMGlqvTb4Dobv7p0e9Nikyv9H0lsmxuZFwI1xlQKYEglCMvvvH41A20OWlxCxgHRkdHNQDsPrAjWrdhfSWNE7MyWTNZXue7P/zWkDHWF0A3S7KKECpnBnY/m9KjP3ygRqlJiKgofGug+bVmBiD71lOrZdrjEEDARCqMnFM3zxnW8AxrEXzuqnOG+uQz1p+Uzo9G5Mbt6sxqDZFZ5uTh20/ofj/a+Tg8596LA8VP3viup6Q34vlKzAcqFGTd9xW6nbR901XfzBwozw/dtGw748hjvuerFWx53hSbknORIJjcdK6/cluPmfHkq1ux9d8/iT3r7hfK84e1trz9q49MNv74XhENBUO1kUrQmerF1ppckKjEx7yTzWYTe57ZWZNKhNaw9UOV61R37/vqI5YZGDvcQHNzc9rT/l8nL1cS1rcCPsBKEAk/EDOSCK1hsO1TW/ONxevjX65ipSD8EtPWYZ5aWMPMjBxS5GxNdrrr5X9019GZccPR5ZSQjPHxUYyOjuOl1/cGwhfDSkpK5+FU5aNUhkJMTfV6N115b6d8n+d7LMseOeMf2RtGkTesc4NBIYJ+R2sU+UjivPd//vB0p+xSQjSKeqOO37zsckVKVDxPBnmuc2vQlYqqnu/5eZp3t2/Z1d3zzE6fCSNJ5L0f9rKaH3iR0cZYY9M49TvNrW5x7tx3DS595/dm1D42nl1HyKEY7AEsicmDSyESQhGUorKPxOCJKsXPrQWMZhhjAZBlhgWgBVizIZ3D6F1b37Zz/F8XIJTUz4deOPJ45HliCETQmQGJ+UlfbSRCezJObrjynqnz4VQXBFj94veFI49VqrWolsTZwHkr0+ACoTocIu5kqQbaN17+DVvGFgHgkR/u8AKhhnRu0u237Oo2GjcjuuLLn7HWTO3csifbdfCBQMBSnKRpFISfyYw55SkZgskHOFOBAmdZ+s0te6Zrw/ftuwbvrP+9aUnWr4oqX7yK2myFRCbBJFiAiEgww/WTKTp1AGBisgy2QoCNFVYAJjGw4TvHBo5pazmNvyzcaaGN3Xr+bqz9tcuGgsCLkiSDMexK+OZRH7XhCnrdOO2snZzcBAAYWzDH6iMCFuBq0kbx4huPVWu1SrXXTWBnjR4bFDbo9RJjNU/dsH5bztzA4cPA5s1NbGlswdVXfkFoC6mUrOosp2S1fwqHMS2Bdj2zc4SI6fLoN08fi3/2GUt2SliSI5eMDJ16f6on2CRCSeUZL7371uYM4XPnvmtw6cp1hWX5f+D8qzMY+/ZtRZK8jTB8D++88+oFTddxqm/cJQgcfVQq6Q1XKqHXmUoK3+78r7c2HKLbSTNx8vTpa69tzhkRd9EAa5o3oIhFHdlbrQyF1V43A7NdEFxh5ENnGpapfd3l34gB4JVX9uG3r90KBrDnmW9K5YfDOtMqV/TBg//cOUof/cFOZQWvJDInmXyCNbUdt+w+vfvgziFmSztv2TO1++lvKVK8ktlaJkqFAIMpAymz/febc0pRGoduBg4/B2y6GXjvVzBWH8fYGPDu567Bpe+8Ov1zYAKYeA3YdDPePXIVntz65IfruugraX/pjccDoWgoCHwxfzJmufkZQyMVtCfj1L7HkzfdtA1LaZPwkQDrzM0Xyfmv761GVb+apXpetTht7kqJIFRI4jzNsqz95S/db1utOoD6dET90YM7w8DjLGVNsB5ZiyqB7fYtu9uNVgPN0Sb2/PCbgti7hNm2t2/Znex+eruEpJWC5JS1OZFQNSFJGmNTgk2lUF5urRaCLUia7f/8O3qmmjyz6Avt6nqrjt+K1ymGJ6Tjbvb+Lbvi5ZYEZXYCUROH/rxBtRUralKIiAHkmV5wAxOokFRJcmLdC1OjNI4lDYT4MNwN8yKVAHDpitjWffnIXis8OSSlwMCOuyh6QhiDXteiNhQGQpL30ht729dfuS0FxrHvlTvxzr+/FPdvaSYAsOvgdl8QD0shhbH6NAB87tTnwMz47g8fCIoW35U9z+wIhBRkjNX3F0mEew7uCK2mTIm0zcb3mHiI3NhOA7LenoM7e9u37OoCwO5ndlSF1MF3//UDsNrGRBTvfnZnqKT0dWaIBISQAmS5sxp/Pz/OP6uy4ICZLTN3LoyUooKgP+Z7StaiSqDaUwmY5+dTZQPaMPLQbie9G664p+NCU2PLRtYvuMQa5J1/8a8eC1TgDXuepCTOFrwqM8MPvCKga5KUded31t1XpBk3ipynJh7/4U6RW6oyWRl/0T9dEvI9z+xcZcCxMJwJSaEKvKrJzenumypbsQaUimwVWzG149ZH8gI8K0HU27FlV7rr4AOhAA/Hl/30bytv/06FGVWCmGJiAngYxKfZClaeWGG00czokSAfbCPK5Qe9X0gTrs2GABI7btk1uVwqptVqoV4fBRHwn488QZGyNQCR5yvXn2oBicjM8DzX4CXPbfvG9ffEZX4dXUAv8QX3P59JgX1c+VKMhBVfdtoxXLPzhT3W1aEAvW5mQdxdoWW8fv1dYGYcPjw27Wv5/oG76PSJFTx8eSpZejWttaeZTn7rll32kYM7PGExLFauOPnNf/pN3vPMtzwiHrFkP9i5ZQ/v/pPthCpdQkRdbZFKUETEESv7AWlxCRM6O766KymctzUS8LZv2X3qkQM7hoUgu2PLro5T0TtWsaVs+627OrsP7gzBqCTHna/tfAE1MTEx7Yx++ehQREJWK7VAdNvJ2VOGGIiqPrIkZ8168obL78tarRZG66MX/M1/KCG0Elw/+ctHReAHQ1HVD7qdsy9Mudv8QCFOMs2WOtdf/o2s/N2Trz6JrYV74nvPPiBYiiGrjc+GTpMgC7LDAKXbtzzSA4A9B3ZUICi4/6uPnCIifO+HO6SxtAqAYWaKKqFM4mRSC8ql5VWaxMm/CI/YOoA3u1cGJFCLj3kfVNblQ8ws1lWOTk5MbEC0Nq8xQe3Ysuv07gP3e0RyJGbvg+atzSWPy2NmjGN8RkbBS0cf80moahAozxiLbAGH5xkeRhgaDtHtpjpP9OTvbLjPLLYD40XJsQYdmze7/pRf/tL9FsDky29+vyqEqColsKBXmAh5rqG1RhgGyhi74sWjj2fE1COibJaFZAFMPnJghyRpLZGshVHoxb04bxxqAEdBELlvLKfl9YwlyQzLZE8xSCZxWmMgoIw1JOClOca/Oo4WMx49uBNgQuHxtyAS9XoLE/Ux8EG2Zc6DNsooj+EjkwD02FgDixlrxtzAeNGQpTxePPK4z8QVKaXv+x56vdSNgD4LqJQn4SmJbieLu7HX2Xz13dw41PjQQPWhAQtAUfHcwNhYE0R3d198/fEcxMO1oUh0O3EhvQYTewCI4wxFfpefZ7n/4ht7c2KOGV5KNOps0UMNPLC5aZwz9M72Kf5sQgIieDuV5NGIVEoJZtpz8FtpfEwahvYANju37GEAeveBHSkTVaXyOuCcbCiotOp2PbNTinICDxMzWJT3tufgzum5Gw/e/ojd88wOCwsJQC80Ls+tx0aMjU1Mk+gXjzxBAjqwRJFSwgtCD91OCmOSRUgpoFoLkcQ5J0navv6KexOnUusY3fzh1r996Nkk/Y7UQ//vHlGrBUN+6AU6N/NajbOJAzOhUnF9x5M4MwwkJrfJ72y4zwz6i32v7MPUa28LQ6yEUIHVJiEQSV+syLPcChcYZiJEltHbccuuzp6DO1cRc779lt3t7/xwp5CGV4HQ3bFld7znmR0RQJExfEpIoQBeQczt7bfuTnY/s6MiBFWLaVnxji27OqU6LF0xhw8DmzbNJM8/PfqHUrIJCQjDSiCJgF43cwMtzrImZXZCGHpIkyzr5br936y/zzA3ltWbflEDa7bF6Hbp90PloxaGgTgbsZ8N0iBU8H2FzlQMCMoIlMCa7Lor77UL/e2effcTK0iSUhDYsyBJApqyPL7/9u/xowd3KiHlCLO1zCzZso4r/ukoNhJsVzCxICZDkoS1nF4evdE+te6/xamJt6pSCTbWGGZpkt+XegwbcfjwxJzg7itv/qEwVgdMIiCGXxsOkWUaaaIX/fxOSgVI05x1rrt/+q/bvWaziXPN/PzYA+uMKnA76uXXH5esUPWUDIUUSItOvbSI6gOGSyYMIx8A0OumDOYczCkksrdevcyMLiGNoJQwe1sNQs6+yQ1/85ZHXDHtgbsoEjVlYSxZZiVDvu+rTe4Pryzkh3r52NsSkD4zBwR4lWpAgOs3Zox1mbhne+QCUUHgQQhCEueZ0dy56Uvb9OyA9N9JYA0MTxzdG0gpqmEUqCTJoHMzg2sttNjlR5wX3/nCup0EINKwnFlGbknpd6681My3m8uXNtsyY25gfHwjlgLQfa/sw8bhSekJqQjkWXYpO9WhCGBGmuQwxhTnP7uULu9NKYmo4qPXTQ2A7m+vuzuZvY4f9XHRtMxocKMoFG3i3/3kUfq1S1UkSVSiSiDiOIPRiwPYmfCFezohBPzAg1ICWWaQJjmD2IChBUizJA3LVpKw75w6Zf/JtUvf6T/5y0eJhSdCxcQshLFWkRAKsApMMgw98nwFrQ2yNIc1thS2i34et2EEKtUAvW7KxtqeTdC76ept3B/muViOi64XS6tVn64/fPXYHwvNeYUIUaUSUJrk0Ll2c+AWWwXDZ3QmkauE8QMPUrokJa0Nkjh3k70YlsFMbjQmk6vEmq6dKAc+EoiYQMxMgtwQcjAEEVEY+m7aKAFGO5+TtTztW5oOey1WJYOhPIUg8hB3EwYosWx6119+r5nNVS+m46Jsye9ewvi0WP/JXz4qfc+LQAijSiiMMS6UsYRdP9t5SH31WiQAIYUr+hCiKPsqwUvzShAuSsGssTDFVwmGAspLAlK/tGUAYeRDSoleN7YAEmVEfM1Vd5tS7QH1j8Tiu6j8WEtCe7FYjUYDGze+hi9/6X4DoPP823t7cacXgmTo+57yA1WQXtNHumlR5+4HjLWAtQYmt32FFjw4e3TGP6ivYIL7rFla0q49o7pdqVwY+UjTHGmSa3CWGIvkpqu22ZLrufz4i7s35sdiiIgD2BnifOj4AVTsBz5DhIIRRNWAmN0QKVuADPQxeLQClUI6HxQz0OulDELKmpPknals83TefgsT9YkLkuLydxZY/Tt7trX2/Nt7hUwogOCAGV61FhLgGsGVDXmJaNkzJM/l3sv7ANywK89X0+4RAnILpNZwWkqnkkPVL2KV94kAVv9GHx9voV6fmGEJPf/GXiml8GHZZ2YvCDzh+QpsGWmWQ+emr/BmmqEtq3Dj/uYQRQUkM0F5AoHvQUhCmmrkmbbMyC1spqzIrrvqHjPbtVGmynwcj4/9PK1Go4FNm4BNm5ozXsJPj36PlFAejPVB8BikPE9SEHoQRNDaQOcGxjKssWdIPc22JufjanMtT1cG5gwA5Qko5bpNp2mOPNNMBM1EOQwyZW1+7a/fy/3nOHzYhXuazebH/bV8sga1NbiBTYcx8OW8eOQJQZxJEtIzYEUESSAJN3OIfF9CKgcKdg1nwH0WYH/zhtJiJHKhZ2MtjLbInTO3nFhv3MQW1sbYnCBMv4orN0UZhP4kgOkTC6xBLgt3zOUohw41MPL5VaSNFRxAMlsBJuGGyAvBbIkIZAESpeOMGUzEIDAbZiJmEsKyBTNZSxBGGFjB1h77i8t4tpe+vKdx4GPJm5Zy/P8z1nIGfsz4ZAAAAABJRU5ErkJggg=="),
+      linear-gradient(165deg, var(--card-bg, var(--surface-2)) 0%, var(--surface) 170px);
+    background-repeat: no-repeat, no-repeat;
+    background-position: right 10px bottom 10px, 0 0;
+    background-size: 128px, auto;
+    border:1px solid var(--line);
+    border-left:6px solid var(--card-fg, var(--accent));
+    border-radius:var(--radius-md); padding:18px 20px;
+    margin:0 0 22px; box-shadow:var(--shadow-2);
+  }
+  .rx-label{ font-size:.78rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px; }
+  .rx-text{ font-size:1rem; line-height:1.7; }
+  .rx-drug{ font-weight:600; }
+  .rx-value{
+    font-family:var(--font-mono); font-weight:600; font-size:.94em;
+    color:var(--accent); background:var(--accent-soft);
+    padding:1px 6px; border-radius:6px; white-space:nowrap;
+    animation:rxFlash .6s ease;
+  }
+  @keyframes rxFlash{ from{ background:var(--accent); color:#fff; } to{ background:var(--accent-soft); color:var(--accent); } }
+  .rx-blank{
+    font-family:var(--font-mono); color:var(--ink-faint);
+    border-bottom:1px dashed var(--line-strong); padding:0 2px;
+  }
+  .rx-alerts{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+
+  .section-card{
+    background:var(--surface); border:1px solid var(--line);
+    border-left:5px solid var(--card-fg, var(--accent));
+    border-radius:var(--radius-md); padding:20px 20px 22px;
+    margin-bottom:16px; box-shadow:var(--shadow-1);
+  }
+  .section-card h2{
+    font-family:var(--font-serif); font-size:1.05rem; font-weight:600;
+    display:flex; align-items:center; gap:9px;
+    margin-bottom:22px; padding-bottom:11px; position:relative;
+  }
+  .section-card h2::after{
+    content:''; position:absolute; left:0; bottom:0;
+    width:44px; height:3px; border-radius:2px;
+    background:linear-gradient(90deg, var(--card-fg, var(--accent)), rgba(var(--card-rgb, 44,122,123),0));
+  }
+  .sec-no{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:23px; height:23px; border-radius:50%; flex-shrink:0;
+    background:var(--card-fg, var(--accent)); color:#fff;
+    font-size:.74rem; font-weight:700;
+  }
+  .sec-sub{ font-size:.9rem; color:var(--ink-soft); margin:-4px 0 16px; }
+
+  .field-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:14px 16px; margin-bottom:14px;
+  }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:.84rem; color:var(--ink-soft); font-weight:500; }
+  .field .opt{ font-weight:400; color:var(--ink-faint); font-size:.85em; }
+  .field input, .field select{
+    padding:10px 12px; border:1px solid var(--line-strong); border-radius:var(--radius-sm);
+    background:var(--surface-2); font-size:.95rem;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .field input:focus, .field select:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  .field .hint{ font-size:.78rem; color:var(--ink-faint); }
+  .field .hint.conc-note, .field .hint.vol-hint{ color:var(--ink-soft); }
+  /* Concentrations flagged Bold_text = Y in the sheet. Desktop browsers bold
+     the option in the open list; the closed select is bolded too (class set
+     from script) because phone pickers ignore option styling. */
+  .field select option.opt-bold{ font-weight:700; }
+  .field select.sel-bold{ font-weight:700; }
+  .fixed-value{
+    margin:0; padding:10px 12px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:var(--radius-sm); font-size:.95rem;
+  }
+
+  .unit-input{
+    display:flex; align-items:stretch; border:1px solid var(--line-strong);
+    border-radius:var(--radius-sm); background:var(--surface-2); overflow:hidden;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .unit-input:focus-within{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .unit-input input{ border:none; background:transparent; flex:1; padding:10px 10px 10px 12px; min-width:0; }
+  .unit-input input:focus{ outline:none; }
+  /* Dose / Rate while an amiodarone drip duration is ticked: values are
+     calculated, not typed. */
+  .unit-input.is-computed{ background:var(--surface); border-style:dashed; }
+  .unit-input.is-computed input{ cursor:default; font-weight:600; }
+  .unit-suffix{
+    padding:0 12px; font-size:.82rem; color:var(--ink-soft); white-space:nowrap;
+    border-left:1px solid var(--line); background:var(--surface);
+    display:flex; align-items:center;
+  }
+
+  .calc-weight-row{ display:flex; align-items:center; gap:10px; }
+  .calc-weight-row input{ flex:1; min-width:0; }
+  .link-btn{
+    background:none; border:none; color:var(--accent); font-size:.82rem; font-weight:600;
+    cursor:pointer; padding:0; text-decoration:underline; text-underline-offset:2px; white-space:nowrap;
+  }
+
+  .weight-computed{ margin:2px 0 16px; }
+  .weight-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .weight-chip{
+    display:flex; gap:5px; align-items:baseline;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:999px;
+    padding:6px 12px; font-size:.8rem; color:var(--ink-soft);
+  }
+  .weight-chip strong{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .weight-chip.suggested{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+  .weight-chip.suggested strong{ color:var(--accent); }
+
+  .dose-range{
+    background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:var(--radius-sm);
+    padding:10px 14px; font-size:.88rem; color:var(--ink-soft); margin:0 0 14px;
+  }
+
+  .prep-summary{ font-size:.88rem; color:var(--ink-soft); line-height:1.55; margin-top:2px; }
+  .prep-draw{ color:var(--accent); font-weight:500; }
+  .alerts-slot{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .alerts-slot:empty{ margin-top:0; }
+
+  .alert{
+    border-radius:var(--radius-sm); padding:10px 13px; font-size:.85rem;
+    display:flex; gap:8px; align-items:flex-start; line-height:1.45;
+  }
+  .alert-warn{ background:var(--warn-bg); color:var(--warn-fg); border:1px solid var(--warn-line); }
+  .alert-danger{ background:var(--danger-bg); color:var(--danger-fg); border:1px solid var(--danger-line); }
+  .alert-info{ background:var(--info-bg); color:var(--info-fg); border:1px solid var(--info-line); }
+
+  .checkbox-row{
+    display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
+    padding:11px 12px; margin:0 0 14px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:var(--radius-sm); font-size:.9rem; color:var(--ink);
+  }
+  .checkbox-row input{ width:17px; height:17px; accent-color:var(--accent); cursor:pointer; flex:none; }
+
+  /* Amiodarone: optional "drip in 12 h / 24 h" tick-boxes above Dose / Rate */
+  .drip-box{ margin:0 0 16px; }
+  .drip-title{ margin:0 0 8px; font-size:.84rem; font-weight:500; color:var(--ink-soft); }
+  .drip-title .opt{ font-weight:400; color:var(--ink-faint); font-size:.85em; }
+  .drip-options{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  .drip-options .checkbox-row{ margin:0; }
+  .drip-options .checkbox-row:has(input:checked){
+    border-color:var(--accent); background:var(--accent-soft); font-weight:600;
+  }
+  .drip-box .hint{ margin:8px 0 0; font-size:.78rem; color:var(--ink-faint); }
+  @media (max-width:420px){ .drip-options{ grid-template-columns:1fr; } }
+
+  /* Section IV: one box per item. Clinical and Laboratory monitoring each
+     hold their parameters AND frequency together in a single box. */
+  .info-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+  .info-box{
+    background:var(--surface-2); border:1px solid var(--line);
+    border-top:3px solid var(--card-fg, var(--accent));
+    border-radius:var(--radius-sm); padding:12px 14px 14px; min-width:0;
+  }
+  .info-box-wide{ grid-column:1 / -1; }
+  .info-box-title{
+    font-family:var(--font-serif); font-size:.92rem; font-weight:600;
+    color:var(--card-fg, var(--accent)); margin:0 0 8px;
+  }
+  .info-box-warn{ background:var(--warn-bg); border-color:var(--warn-line); border-top-color:var(--warn-fg); }
+  .info-box-warn .info-box-title{ color:var(--warn-fg); }
+  .info-part + .info-part{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--line-strong); }
+  .info-part-label{
+    font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--ink-soft); margin-bottom:3px;
+  }
+  .info-value{ font-size:.92rem; line-height:1.6; white-space:pre-line; overflow-wrap:anywhere; }
+  .info-value.empty{ color:var(--ink-faint); font-style:italic; }
+
+  /* =========================================================
+     Footer
+     ========================================================= */
+  .app-footer{
+    border-top:1px solid var(--line-navy-soft); margin-top:36px; padding:26px 16px 44px;
+    text-align:center; color:var(--ink-faint); font-size:.78rem; line-height:1.7;
+  }
+
+  /* =========================================================
+     Responsive
+     ========================================================= */
+  @media (max-width:640px){
+    .header-inner{ padding:0 12px; }
+    .brand-text{ font-size:.94rem; }
+    #app-main{ padding:18px 12px 48px; }
+    .section-card{ padding:16px 14px 18px; }
+    .drug-grid{ grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:10px; }
+    .drug-card{ padding:16px 14px; }
+    .info-grid{ grid-template-columns:1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+  }
+</style>
 </head>
 <body>
-  <iframe
-    src="https://script.google.com/macros/s/AKfycbxyHaDRpaBrZgE5x1divdtSWjEr0enYH7XY0hRZOO1kbivgG5I9txLNovA2cNXXT80/exec"
-    allow="clipboard-write; forms"
-    loading="eager">
-  </iframe>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <button type="button" id="btn-brand" class="brand-btn" aria-label="RAMA HAD Calculator — go to homepage">
+        <span class="brand-mark" aria-hidden="true">&#8478;</span>
+        <span class="brand-text">RAMA HAD Calculator</span>
+      </button>
+      <button type="button" id="btn-back" class="btn-back" hidden>Back to search</button>
+    </div>
+  </header>
+
+  <main id="app-main">
+
+    <section id="view-home" class="view">
+      <p class="intro">Search or browse Ramathibodi's <span id="intro-count">23</span> High Alert Drugs below to open the infusion calculator for that drug.</p>
+      <p class="intro intro-detail">This calculator is based on the appropriate HAD medication administration protocols used at Ramathibodi Hospital and promotes the delivery of HAD medications via smart infusion pumps.</p>
+      <p class="data-note" id="data-note" role="status" hidden></p>
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">&#128269;</span>
+        <input id="search-input" type="text" placeholder="Search by generic name or synonym — e.g. Levophed, Precedex, NTG" autocomplete="off" aria-label="Search drug name or synonym" disabled>
+      </div>
+      <div id="loading-state" class="loading-state" role="status" aria-live="polite">
+        <div class="loading-spinner" aria-hidden="true">
+          <span class="loading-ring"></span>
+          <span class="loading-ring"></span>
+          <span class="loading-ring"></span>
+        </div>
+        <p class="loading-text">Loading the HAD drug database&hellip;</p>
+      </div>
+      <div id="drug-grid" class="drug-grid" aria-live="polite"></div>
+      <p id="no-results" class="no-results" hidden></p>
+    </section>
+
+    <section id="view-drug" class="view" hidden>
+
+      <span class="class-chip" id="drug-class-chip"></span>
+      <h1 class="drug-title" id="drug-title"></h1>
+      <p class="drug-subtitle" id="drug-subtitle"></p>
+
+      <div class="rx-box" id="rx-box">
+        <div class="rx-label">Prescribing transcription</div>
+        <p class="rx-text" id="rx-text" aria-live="polite"></p>
+        <div class="rx-alerts" id="rx-alerts"></div>
+      </div>
+
+      <div class="section-card" id="card-1">
+        <h2><span class="sec-no">I</span> Patient weight</h2>
+        <div class="field-grid">
+          <div class="field">
+            <label for="inp-bw">Body weight (kg)</label>
+            <input type="number" id="inp-bw" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 65">
+          </div>
+          <div class="field">
+            <label for="inp-ht">Height (cm) <span class="opt">— optional</span></label>
+            <input type="number" id="inp-ht" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 165">
+          </div>
+          <div class="field">
+            <label for="inp-gender">Gender <span class="opt">— optional</span></label>
+            <select id="inp-gender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="weight-computed" class="weight-computed" hidden>
+          <div class="weight-chips" id="weight-chips"></div>
+        </div>
+
+        <div class="field" id="weight-for-calc-wrap" hidden>
+          <label for="inp-calc-weight">Weight to use for dose calculation (kg)</label>
+          <div class="calc-weight-row">
+            <input type="number" id="inp-calc-weight" inputmode="decimal" step="0.1" min="0">
+            <button type="button" id="btn-use-suggested" class="link-btn" hidden>Use suggested</button>
+          </div>
+          <span class="hint" id="calc-weight-hint"></span>
+        </div>
+        <div class="alerts-slot" id="sec1-alerts"></div>
+      </div>
+
+      <div class="section-card" id="card-2">
+        <h2><span class="sec-no">II</span> Preparation</h2>
+        <p class="sec-sub">Preparing: <strong id="sec2-drug-name"></strong></p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="sel-product">Available product <span class="opt">— optional</span></label>
+            <select id="sel-product"></select>
+          </div>
+          <div class="field">
+            <label for="sel-conc">Concentration</label>
+            <select id="sel-conc"></select>
+            <span class="hint conc-note" id="conc-note-hint" hidden></span>
+          </div>
+        </div>
+
+        <div class="field-grid" id="custom-conc-row" hidden>
+          <div class="field">
+            <label for="inp-custom-conc">Custom concentration</label>
+            <div class="unit-input">
+              <input type="number" id="inp-custom-conc" inputmode="decimal" step="any" min="0">
+              <span class="unit-suffix" id="custom-conc-unit"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="sel-custom-route">Route</label>
+            <select id="sel-custom-route">
+              <option value="">— Select —</option>
+              <option value="Peripheral">Peripheral</option>
+              <option value="Large Peripheral">Large Peripheral</option>
+              <option value="Central">Central</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label id="diluent-label" for="sel-diluent">Diluent</label>
+            <select id="sel-diluent" hidden></select>
+            <p class="fixed-value" id="diluent-fixed" hidden>—</p>
+          </div>
+          <div class="field" id="volume-field">
+            <label for="inp-volume">Total volume to prepare (mL)</label>
+            <input type="number" id="inp-volume" inputmode="decimal" step="1" min="1" value="100">
+            <span class="hint vol-hint" id="volume-hint" hidden></span>
+          </div>
+          <div class="field" id="route-field">
+            <label>Route</label>
+            <p class="fixed-value" id="route-fixed">—</p>
+          </div>
+        </div>
+
+        <p class="prep-summary" id="prep-summary"></p>
+        <div class="alerts-slot" id="sec2-alerts"></div>
+        <div class="alerts-slot" id="prep-note"></div>
+      </div>
+
+      <div class="section-card" id="card-3">
+        <h2><span class="sec-no">III</span> Dose &harr; rate</h2>
+        <p class="dose-range" id="dose-range"></p>
+
+        <div class="drip-box" id="drip-box" hidden>
+          <p class="drip-title">Infusion duration <span class="opt">(optional)</span></p>
+          <div class="drip-options">
+            <label class="checkbox-row"><input type="checkbox" id="chk-drip-12"><span>Drip in 12 h</span></label>
+            <label class="checkbox-row"><input type="checkbox" id="chk-drip-24"><span>Drip in 24 h</span></label>
+          </div>
+          <p class="hint">Stable for 12 hr after dilution. Tick one to work out the rate from the total volume in Section II; leave both unticked to enter Dose or Rate directly.</p>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="inp-dose">Dose</label>
+            <div class="unit-input" id="wrap-dose">
+              <input type="number" id="inp-dose" inputmode="decimal" step="any" min="0">
+              <span class="unit-suffix" id="dose-unit-suffix"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="inp-rate">Rate</label>
+            <div class="unit-input" id="wrap-rate">
+              <input type="number" id="inp-rate" inputmode="decimal" step="any" min="0">
+              <span class="unit-suffix">mL/hr</span>
+            </div>
+          </div>
+        </div>
+        <p class="hint" id="sec3-prereq-hint" hidden></p>
+        <div class="alerts-slot" id="sec3-alerts"></div>
+      </div>
+
+      <div class="section-card" id="card-4">
+        <h2><span class="sec-no">IV</span> Additional information</h2>
+        <label class="checkbox-row" id="titrate-keep-toggle-wrap" hidden>
+          <input type="checkbox" id="chk-titrate-keep">
+          <span>Show titration and monitoring parameters in transcription</span>
+        </label>
+        <div class="info-grid" id="info-boxes"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>พัฒนาโดย: ภญ.วริสสาร์ กอบเพ็ชรหยก, ภญ.ทิพย์นภา จารุจิตมณีกุล, ภญ.เบญญาภา เพชรปวรรักษ์, ภก.เมธาวราเทพ ทองทาบ</p>
+    <p>&copy; 2026 งานเภสัชกรรมคลินิก ฝ่ายเภสัชกรรม คณะแพทยศาสตร์โรงพยาบาลรามาธิบดี มหาวิทยาลัยมหิดล</p>
+  </footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* =========================================================
+     Colour follows the sheet's Drug_class. Names are compared
+     ignoring case, spaces and punctuation. A class that is not
+     listed here (a new one, or a blank cell) gets the "other"
+     colour — to give a new class its own colour, add it here and
+     add a matching .class-xxx rule in the CSS above.
+     ========================================================= */
+  var CLASS_COLOR = {
+    cardiovascular:'cardio',
+    neuromuscularblockingagents:'nmb', neuromuscularblockingagent:'nmb', neuromuscularblockers:'nmb', neuromuscularblocker:'nmb',
+    anxiolyticshypnoticssedatives:'sedative', sedatives:'sedative',
+    opioids:'opioid', opioid:'opioid',
+    others:'other'
+  };
+  function colorClassOf(d){
+    var key = String(d.drugClass || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return CLASS_COLOR[key] || 'other';
+  }
+
+  /* =========================================================
+     Per-drug icon + fallback class label (used when the sheet has
+     no Drug_class text). The icon stays per drug, so drugs that
+     share a colour — e.g. all Cardiovascular — remain distinguishable
+     by symbol as well.
+     ========================================================= */
+  var DRUG_CLASS = {
+    D01:'pressor', D02:'antiarr', D03:'nmb', D04:'sedative', D05:'pressor',
+    D06:'pressor', D07:'antiarr', D08:'sedative', D09:'anticoag', D10:'vasodilator',
+    D11:'vasodilator', D12:'inotrope', D13:'antiarr', D14:'other', D15:'sedative',
+    D16:'inotrope', D17:'sedative', D18:'vasodilator', D19:'vasodilator', D20:'vasodilator',
+    D21:'pressor', D22:'sedative', D23:'pressor'
+  };
+  var CLASS_META = {
+    pressor:     { name:'Vasopressor / inotrope' },
+    antiarr:     { name:'Antiarrhythmic' },
+    nmb:         { name:'Neuromuscular blocker' },
+    sedative:    { name:'Sedative / analgesic' },
+    anticoag:    { name:'Anticoagulant' },
+    vasodilator: { name:'Vasodilator / antihypertensive' },
+    inotrope:    { name:'Inodilator' },
+    other:       { name:'Other' }
+  };
+  // small monoline icons, one per class — a second (non-color) way to
+  // tell classes apart at a glance. 20x20 viewBox, stroke-only.
+  var CLASS_ICON = {
+    pressor:     '<path d="M3,5 Q10,10 17,5"/><path d="M3,15 Q10,10 17,15"/>',
+    antiarr:     '<polyline points="2,10 6,10 8,3 12,17 14,10 18,10"/>',
+    nmb:         '<line x1="7" y1="4" x2="7" y2="16"/><line x1="13" y1="4" x2="13" y2="16"/>',
+    sedative:    '<path d="M5 6h10l-10 8h10"/>',
+    anticoag:    '<path d="M10 3 L15.5 12.5 A5.5 5.5 0 1 1 4.5 12.5 Z"/>',
+    vasodilator: '<path d="M3,9 Q10,4 17,9"/><path d="M3,11 Q10,16 17,11"/>',
+    inotrope:    '<path d="M11 2 L4 12 L9 12 L8 18 L16 8 L11 8 Z"/>',
+    other:       '<circle cx="6" cy="14" r="1.7"/><circle cx="14" cy="14" r="1.7"/><circle cx="10" cy="5" r="1.7"/><line x1="6.6" y1="12.7" x2="9.4" y2="6.3"/><line x1="13.4" y1="12.7" x2="10.6" y2="6.3"/>'
+  };
+
+  /* =========================================================
+     Drug-specific rules (matched on the generic name, so they keep
+     working if Drug_IDs change)
+     ========================================================= */
+  // Cisatracurium: from this infusion rate upward, the larger vial is the
+  // preferred product (cost-effectiveness). The product is looked up in the
+  // Products sheet by its amount; the label below is only a fallback for
+  // when no such product row exists.
+  var RULE_CISATRACURIUM = {
+    name: /cisatracurium/i,
+    thresholdMgPerHr: 4,
+    productAmountMg: 150,
+    fallbackLabel: '150 mg / 3 mL'
+  };
+  // Notes shown permanently in Section II (Preparation) for a drug, whatever
+  // is selected. Matched on the generic name; add a line to extend.
+  var PREP_NOTES = [
+    { name: /amiodarone/i, text: 'Stability after dilution is 12 hr' }
+  ];
+  // Levosimendan: no safety data above this total (actual) body weight.
+  var RULE_LEVOSIMENDAN = { name: /levosimendan/i, maxTbwKg: 120 };
+
+  // Amiodarone is stable for only 12 hr after dilution. The drip tick-boxes in
+  // Section III turn the Section II total volume into a rate over 12 or 24 hr;
+  // anything longer than 12 hr is split into bags that each run for 12 hr.
+  var RULE_AMIODARONE_DRIP = { name: /amiodarone/i, stabilityHours: 12, options: [12, 24] };
+  var DEFAULT_VOLUME_ML = 100;
+
+  /* =========================================================
+     Unit conversion helpers
+     ========================================================= */
+  var MASS_TO_MCG = { ng:0.001, mcg:1, mg:1000 };
+
+  function massFactor(from, to){
+    if(from===to) return 1;
+    if(from==='unit' || to==='unit') return 1;
+    return MASS_TO_MCG[from] / MASS_TO_MCG[to];
+  }
+  function parseDoseUnit(u){
+    var parts = u.split('/');
+    return { amountUnit: parts[0], perKg: u.indexOf('/kg/')!==-1, timeUnit: parts[parts.length-1] };
+  }
+  function doseToRate(doseVal, doseUnitStr, concVal, concUnitStr, bw){
+    var p = parseDoseUnit(doseUnitStr);
+    var cAmt = concUnitStr.split('/')[0];
+    var amtPerTime = doseVal * (p.perKg ? bw : 1);
+    var amtPerHr = p.timeUnit==='min' ? amtPerTime*60 : amtPerTime;
+    var amtPerHrConcUnit = amtPerHr * massFactor(p.amountUnit, cAmt);
+    return amtPerHrConcUnit / concVal;
+  }
+  function rateToDose(rateVal, doseUnitStr, concVal, concUnitStr, bw){
+    var p = parseDoseUnit(doseUnitStr);
+    var cAmt = concUnitStr.split('/')[0];
+    var amtPerHrConcUnit = rateVal * concVal;
+    var amtPerHr = amtPerHrConcUnit * massFactor(cAmt, p.amountUnit);
+    var amtPerTime = p.timeUnit==='min' ? amtPerHr/60 : amtPerHr;
+    return p.perKg ? amtPerTime/bw : amtPerTime;
+  }
+
+  /* =========================================================
+     Small helpers
+     ========================================================= */
+  function roundTo(n, dp){ return Number(n.toFixed(dp)); }
+  function fmtNum(n, maxDp){
+    if(n===null || n===undefined || isNaN(n)) return null;
+    return String(roundTo(n, maxDp));
+  }
+  function escapeHtml(v){
+    if(v===null || v===undefined) return '';
+    return String(v).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+  function alertHtml(type, msg){
+    var icon = type==='info' ? '\u2139' : '\u26A0';
+    return '<div class="alert alert-'+type+'"><span aria-hidden="true">'+icon+'</span><span>'+escapeHtml(msg)+'</span></div>';
+  }
+  function rxTok(text){
+    if(text===null || text===undefined || text==='') return '<span class="rx-blank">____</span>';
+    return '<span class="rx-value">'+escapeHtml(text)+'</span>';
+  }
+
+  /* =========================================================
+     App state
+     ========================================================= */
+  var DB = { drugs:[], products:[], concentrations:[], matches:[] };
+
+  // Feature-detect the History API once. When available, opening a drug
+  // pushes a history entry so the browser's own back button, a mobile
+  // swipe-back gesture, and Android's back control all return to the
+  // home grid via the popstate handler in bindEvents(). Falls back to a
+  // direct view switch if the API is ever unavailable.
+  var HISTORY_OK = !!(window.history && window.history.pushState);
+
+  var state = {
+    searchTerm:'',
+    currentDrugId:null,
+    bw:null, ht:null, gender:'',
+    calcWeight:null, calcWeightAuto:true,
+    productId:null,
+    concSelection:'',
+    customConc:null, customRoute:null,
+    diluent:null,
+    totalVolume:DEFAULT_VOLUME_ML, volumeTouched:false,
+    dripHours:null, drip:null,
+    dose:null, rate:null, lastEdited:null,
+    selConc:null, derivedAmountToAdd:null,
+    criticalAlerts:[],
+    showTitrateKeep:false
+  };
+
+  /* =========================================================
+     DOM references
+     ========================================================= */
+  var el = {};
+  function cacheEls(){
+    var ids = [
+      'btn-brand','btn-back','search-input','drug-grid','no-results','intro-count','loading-state','data-note',
+      'view-home','view-drug','drug-title','drug-subtitle','drug-class-chip',
+      'rx-box','rx-text','rx-alerts',
+      'inp-bw','inp-ht','inp-gender','weight-computed','weight-chips',
+      'weight-for-calc-wrap','inp-calc-weight','btn-use-suggested','calc-weight-hint','sec1-alerts',
+      'sec2-drug-name','sel-product','sel-conc','conc-note-hint',
+      'custom-conc-row','inp-custom-conc','custom-conc-unit','sel-custom-route',
+      'diluent-label','sel-diluent','diluent-fixed','volume-field','inp-volume','volume-hint',
+      'route-field','route-fixed','prep-summary','sec2-alerts','prep-note',
+      'dose-range','drip-box','chk-drip-12','chk-drip-24','wrap-dose','wrap-rate',
+      'inp-dose','dose-unit-suffix','inp-rate','sec3-prereq-hint','sec3-alerts',
+      'titrate-keep-toggle-wrap','chk-titrate-keep','info-boxes'
+    ];
+    ids.forEach(function(id){
+      el[toCamel(id)] = document.getElementById(id);
+    });
+  }
+  function toCamel(id){
+    return id.replace(/-([a-z0-9])/g, function(_, c){ return c.toUpperCase(); });
+  }
+
+  /* =========================================================
+     Init
+     ========================================================= */
+  document.addEventListener('DOMContentLoaded', init);
+
+  function init(){
+    cacheEls();
+    bindEvents();
+    if(HISTORY_OK){
+      history.replaceState({ view:'home' }, '', location.href);
+    }
+    loadDatabase();
+  }
+
+  /* =========================================================
+     Data loading
+     Opened from the Apps Script web app: google.script.run.
+     Hosted elsewhere (GitHub Pages): a plain cookie-less fetch of the web
+     app's JSON endpoint, so Google's account picker is never involved.
+     The last good copy is kept in localStorage as an offline fallback.
+     ========================================================= */
+  // Web app URL (Deploy > Manage deployments). Only used when this page is
+  // NOT opened from the Apps Script URL itself.
+  var API_URL = 'https://script.google.com/macros/s/AKfycbxyHaDRpaBrZgE5x1divdtSWjEr0enYH7XY0hRZOO1kbivgG5I9txLNovA2cNXXT80/exec';
+  var DB_STORE_KEY = 'rama_had_db_v4';
+  var FETCH_TIMEOUT_MS = 25000;
+
+  function validDb(db){
+    return !!(db && Array.isArray(db.drugs) && db.drugs.length &&
+              Array.isArray(db.products) && Array.isArray(db.concentrations));
+  }
+  function storeDb(db){
+    try{ localStorage.setItem(DB_STORE_KEY, JSON.stringify({ savedAt:Date.now(), db:db })); }catch(e){}
+  }
+  function readStoredDb(){
+    try{
+      var o = JSON.parse(localStorage.getItem(DB_STORE_KEY));
+      if(o && validDb(o.db)) return o;
+    }catch(e){}
+    return null;
+  }
+
+  function loadDatabase(){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(onDbLoaded).withFailureHandler(onDbError).getDatabase();
+      return;
+    }
+    if(!API_URL || typeof fetch !== 'function'){
+      onDbError({ message:'No data source is configured for this page.' });
+      return;
+    }
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, FETCH_TIMEOUT_MS) : null;
+    // No cookies are sent (credentials:'omit'): the request is anonymous, so
+    // being signed in to several Google accounts makes no difference. The
+    // timestamp only defeats any browser/proxy cache of the previous reply.
+    var url = API_URL + (API_URL.indexOf('?')===-1 ? '?' : '&') + 'action=db&t=' + Date.now();
+    fetch(url, { method:'GET', credentials:'omit', redirect:'follow', signal: ctl ? ctl.signal : undefined })
+      .then(function(r){
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data){
+        if(timer) clearTimeout(timer);
+        if(data && data.error) throw new Error(data.error);
+        if(!validDb(data)) throw new Error('Unexpected data format');
+        storeDb(data);
+        onDbLoaded(data);
+      })
+      .catch(function(err){
+        if(timer) clearTimeout(timer);
+        var saved = readStoredDb();
+        if(saved) onDbLoaded(saved.db, saved.savedAt);
+        else onDbError(err);
+      });
+  }
+
+  function onDbLoaded(db, savedAt){
+    DB = db || { drugs:[], products:[], concentrations:[], matches:[] };
+    if(!DB.matches) DB.matches = [];
+    el.introCount.textContent = DB.drugs.length;
+    el.loadingState.hidden = true;
+    el.searchInput.disabled = false;
+    if(savedAt){
+      var when = new Date(savedAt);
+      el.dataNote.textContent = 'Could not reach the live database \u2014 showing the copy saved on this device on ' +
+        when.toLocaleDateString() + ' ' + when.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) +
+        '. It may be out of date; reload to try again.';
+      el.dataNote.hidden = false;
+    } else {
+      el.dataNote.hidden = true;
+    }
+    renderHome();
+  }
+  function onDbError(err){
+    el.loadingState.hidden = true;
+    el.drugGrid.innerHTML = '';
+    el.noResults.hidden = false;
+    el.noResults.textContent = 'Could not load the drug database. Check your connection and reload the page.' +
+      (err && err.message ? ' (' + err.message + ')' : '');
+  }
+
+  function bindEvents(){
+    el.btnBrand.addEventListener('click', goHome);
+    el.btnBack.addEventListener('click', goHome);
+    window.addEventListener('popstate', function(){
+      // Fires for the browser back button, a swipe-back gesture, and
+      // Android's back control alike. We only ever push one kind of
+      // entry (a single drug page on top of home), so any popstate
+      // while a drug is open means "return to home."
+      if(state.currentDrugId){
+        showHomeView();
+      }
+    });
+    el.searchInput.addEventListener('input', function(){
+      state.searchTerm = this.value;
+      renderHome();
+    });
+    el.drugGrid.addEventListener('click', function(e){
+      var card = e.target.closest('.drug-card');
+      if(card) openDrug(card.getAttribute('data-id'));
+    });
+
+    // Section I
+    el.inpBw.addEventListener('input', function(){
+      state.bw = parseFloat(this.value); if(isNaN(state.bw)) state.bw = null;
+      onWeightChange();
+    });
+    el.inpHt.addEventListener('input', function(){
+      state.ht = parseFloat(this.value); if(isNaN(state.ht)) state.ht = null;
+      onWeightChange();
+    });
+    el.inpGender.addEventListener('change', function(){
+      state.gender = this.value; onWeightChange();
+    });
+    el.inpCalcWeight.addEventListener('input', function(){
+      state.calcWeightAuto = false;
+      state.calcWeight = parseFloat(this.value); if(isNaN(state.calcWeight)) state.calcWeight = null;
+      el.btnUseSuggested.hidden = false;
+      recompute();
+    });
+    el.btnUseSuggested.addEventListener('click', function(){
+      state.calcWeightAuto = true;
+      onWeightChange();
+    });
+
+    // Section II
+    el.selProduct.addEventListener('change', function(){
+      var before = state.concSelection;
+      state.productId = this.value || null;
+      populateConcentrationOptions(currentDrug(), state.productId);
+      // A typed volume survives a product change as long as the concentration
+      // is still the same one; otherwise the suggestion for the new pair applies.
+      if(!state.volumeTouched || state.concSelection !== before) applyDefaultVolume();
+      recompute();
+    });
+    el.selConc.addEventListener('change', function(){
+      state.concSelection = this.value;
+      state.diluent = null; state.customConc = null; state.customRoute = null;
+      renderConcNoteHint(state.productId);
+      syncConcBold();
+      applyDefaultVolume();
+      recompute();
+    });
+    el.inpCustomConc.addEventListener('input', function(){
+      state.customConc = parseFloat(this.value); if(isNaN(state.customConc)) state.customConc = null;
+      recompute();
+    });
+    el.selCustomRoute.addEventListener('change', function(){
+      state.customRoute = this.value || null;
+      recompute();
+    });
+    el.selDiluent.addEventListener('change', function(){
+      state.diluent = this.value || null;
+      recompute();
+    });
+    el.inpVolume.addEventListener('input', function(){
+      state.volumeTouched = true;
+      state.totalVolume = parseFloat(this.value); if(isNaN(state.totalVolume)) state.totalVolume = null;
+      recompute();
+    });
+
+    // Section III
+    el.inpDose.addEventListener('input', function(){
+      state.lastEdited = 'dose';
+      state.dose = parseFloat(this.value); if(isNaN(state.dose)) state.dose = null;
+      recompute();
+    });
+    el.inpRate.addEventListener('input', function(){
+      state.lastEdited = 'rate';
+      state.rate = parseFloat(this.value); if(isNaN(state.rate)) state.rate = null;
+      recompute();
+    });
+
+    // Amiodarone drip duration: the two boxes are mutually exclusive, and
+    // unticking both returns to free Dose / Rate entry.
+    [[el.chkDrip12, 12, el.chkDrip24], [el.chkDrip24, 24, el.chkDrip12]].forEach(function(t){
+      t[0].addEventListener('change', function(){
+        if(this.checked){ t[2].checked = false; state.dripHours = t[1]; }
+        else { state.dripHours = null; }
+        // Start Dose / Rate clean in either direction so nothing typed
+        // earlier is mistaken for a calculated value.
+        state.dose = null; state.rate = null; state.lastEdited = null;
+        recompute();
+      });
+    });
+
+    // Section IV
+    el.chkTitrateKeep.addEventListener('change', function(){
+      state.showTitrateKeep = this.checked;
+      recompute();
+    });
+  }
+
+  /* =========================================================
+     Navigation
+     ========================================================= */
+  function goHome(){
+    // Called by the brand/back buttons. Routes through history.back()
+    // (when supported) so it converges on the exact same popstate path
+    // as a native back gesture, keeping the browser's history stack and
+    // the app's own view state in sync.
+    if(!state.currentDrugId) return;
+    if(HISTORY_OK){
+      history.back();
+    } else {
+      showHomeView();
+    }
+  }
+
+  function showHomeView(){
+    state.currentDrugId = null;
+    el.viewHome.hidden = false;
+    el.viewDrug.hidden = true;
+    el.btnBack.hidden = true;
+    window.scrollTo(0,0);
+    renderHome();
+  }
+
+  function openDrug(id){
+    var d = DB.drugs.filter(function(x){ return x.id===id; })[0];
+    if(!d) return;
+
+    if(HISTORY_OK){
+      history.pushState({ view:'drug', id:id }, '', location.href);
+    }
+
+    state.currentDrugId = id;
+    state.bw=null; state.ht=null; state.gender='';
+    state.calcWeight=null; state.calcWeightAuto=true;
+    state.productId=null; state.concSelection=''; state.customConc=null; state.customRoute=null;
+    state.diluent=null; state.totalVolume=DEFAULT_VOLUME_ML; state.volumeTouched=false;
+    state.dripHours=null; state.drip=null;
+    state.dose=null; state.rate=null; state.lastEdited=null;
+    state.selConc=null; state.derivedAmountToAdd=null; state.criticalAlerts=[];
+    state.showTitrateKeep=false;
+
+    el.viewHome.hidden = true;
+    el.viewDrug.hidden = false;
+    el.btnBack.hidden = false;
+    window.scrollTo(0,0);
+
+    renderDrugPage(d);
+  }
+
+  /* =========================================================
+     Home view rendering
+     ========================================================= */
+  function filterDrugs(term){
+    var t = (term || '').trim().toLowerCase();
+    if(!t) return DB.drugs;
+    return DB.drugs.filter(function(d){
+      return d.generic.toLowerCase().indexOf(t)!==-1 ||
+        (d.synonym && d.synonym.toLowerCase().indexOf(t)!==-1);
+    });
+  }
+
+  function renderHome(){
+    var list = filterDrugs(state.searchTerm);
+    if(list.length===0){
+      el.drugGrid.innerHTML = '';
+      el.noResults.hidden = false;
+      el.noResults.textContent = 'No drug matches \u201c' + state.searchTerm + '\u201d. Try the generic name or a common synonym.';
+      return;
+    }
+    el.noResults.hidden = true;
+    el.drugGrid.innerHTML = list.map(function(d){
+      var cls = DRUG_CLASS[d.id] || 'other';   // icon + fallback label
+      var meta = CLASS_META[cls];
+      return '<button type="button" class="drug-card class-'+colorClassOf(d)+'" data-id="'+d.id+'">' +
+             '<span class="card-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+CLASS_ICON[cls]+'</svg></span>' +
+             '<span class="name">'+escapeHtml(d.generic)+'</span>' +
+             '<span class="class-label">'+escapeHtml(d.drugClass || meta.name)+'</span>' +
+             (d.drugSubgroup ? '<span class="class-sub">'+escapeHtml(d.drugSubgroup)+'</span>' : '') +
+             '</button>';
+    }).join('');
+  }
+
+  /* =========================================================
+     Drug page: setup
+     ========================================================= */
+  function currentDrug(){
+    if(!state.currentDrugId) return null;
+    return DB.drugs.filter(function(d){ return d.id===state.currentDrugId; })[0] || null;
+  }
+
+  function renderDrugPage(d){
+    var cls = DRUG_CLASS[d.id] || 'other';   // fallback label only
+    var meta = CLASS_META[cls];
+    var color = colorClassOf(d);
+    el.viewDrug.className = 'view class-' + color;
+
+    el.drugClassChip.className = 'class-chip class-' + color;
+    el.drugClassChip.textContent = (d.drugClass || meta.name) + (d.drugSubgroup ? ' \u00b7 ' + d.drugSubgroup : '');
+    el.drugTitle.textContent = d.generic;
+    el.drugSubtitle.textContent = d.synonym ? 'Also known as ' + d.synonym : '';
+    el.drugSubtitle.hidden = !d.synonym;
+    el.sec2DrugName.textContent = d.generic;
+
+    populateProductOptions(d);
+    populateConcentrationOptions(d, null);
+    renderPrepNote(d);
+    renderInfoRows(d);
+
+    el.titrateKeepToggleWrap.hidden = !d.showTitrateKeep;
+    el.chkTitrateKeep.checked = false;
+
+    el.dripBox.hidden = !dripSupported(d);
+    el.chkDrip12.checked = false; el.chkDrip24.checked = false;
+
+    el.inpBw.value=''; el.inpHt.value=''; el.inpGender.value='';
+    el.inpCalcWeight.value=''; el.btnUseSuggested.hidden=true;
+    el.inpVolume.value = state.totalVolume;
+    el.inpDose.value=''; el.inpRate.value='';
+
+    onWeightChange();
+  }
+
+  function populateProductOptions(d){
+    var list = DB.products.filter(function(p){ return p.drugId===d.id; });
+    var html = '<option value="">\u2014 None selected \u2014</option>';
+    list.forEach(function(p){
+      html += '<option value="'+p.id+'">'+escapeHtml(p.name)+' ('+fmtNum(p.amount,3)+' '+escapeHtml(p.amountUnit)+' / '+fmtNum(p.volumeML,2)+' mL)</option>';
+    });
+    el.selProduct.innerHTML = html;
+    el.selProduct.value = '';
+  }
+
+  // Sort key for a concentration: its value on the mcg scale for mass units
+  // (ng / mcg / mg per mL), or the raw value for anything else (e.g. unit/mL).
+  function concSortValue(c){
+    var amt = String(c.concUnit || '').split('/')[0].trim();
+    return c.concValue * (MASS_TO_MCG[amt] || 1);
+  }
+
+  // The Note typed against a (product, concentration) pair in the
+  // match_Conc-Product sheet. With a product selected, that pair's note.
+  // With none selected, the note is shown only when every note for this
+  // concentration is the same — otherwise it is unclear which product it
+  // belongs to, so nothing is shown.
+  function matchNote(concId, productId){
+    var notes = [];
+    DB.matches.forEach(function(m){
+      if(m.concId !== concId || !m.note) return;
+      if(!productId || m.productId === productId) notes.push(m.note);
+    });
+    if(!notes.length) return '';
+    return notes.every(function(n){ return n === notes[0]; }) ? notes[0] : '';
+  }
+
+  function populateConcentrationOptions(d, productId){
+    var list = DB.concentrations.filter(function(c){ return c.drugId===d.id; });
+
+    if(productId){
+      var matchedIds = DB.matches
+        .filter(function(m){ return m.productId===productId; })
+        .map(function(m){ return m.concId; });
+      if(matchedIds.length){
+        var filtered = list.filter(function(c){ return matchedIds.indexOf(c.id)!==-1; });
+        // Only narrow the list if the match table actually yields something for
+        // this drug; an empty result (e.g. mismatched data) falls back to showing
+        // every concentration rather than leaving the dropdown empty.
+        if(filtered.length) list = filtered;
+      }
+    }
+
+    // Lowest to highest concentration, for every drug. Mass units are put on
+    // one scale first (so 500 mcg/mL sorts below 1 mg/mL); ties keep the
+    // order they have in the Concentration sheet.
+    list = list.map(function(c, i){ return { c:c, i:i, v:concSortValue(c) }; })
+      .sort(function(a, b){ return (a.v - b.v) || (a.i - b.i); })
+      .map(function(x){ return x.c; });
+
+    var html = '<option value="">\u2014 Select a concentration \u2014</option>';
+    list.forEach(function(c){
+      var routeTxt = c.route ? ' \u00b7 ' + c.route : '';
+      var note = matchNote(c.id, productId);
+      var label = (c.isUndiluted ? 'Undiluted ' : '') + fmtNum(c.concValue,4) + ' ' + c.concUnit + routeTxt +
+                  ' (ratio ' + c.ratioLabel + ')' + (note ? ' \u00b7 ' + note : '');
+      html += '<option value="'+c.id+'"'+(c.boldText ? ' class="opt-bold"' : '')+'>'+escapeHtml(label)+'</option>';
+    });
+    html += '<option value="custom">Custom concentration\u2026</option>';
+    el.selConc.innerHTML = html;
+
+    var stillValid = state.concSelection==='' || state.concSelection==='custom' ||
+      list.some(function(c){ return c.id===state.concSelection; });
+    if(!stillValid){
+      state.concSelection = '';
+      state.diluent = null;
+    }
+    el.selConc.value = state.concSelection;
+    renderConcNoteHint(productId);
+    syncConcBold();
+  }
+  // Bold the closed select too when the chosen concentration is a bold one.
+  function syncConcBold(){
+    var opt = el.selConc.options[el.selConc.selectedIndex];
+    el.selConc.classList.toggle('sel-bold', !!(opt && opt.classList.contains('opt-bold')));
+  }
+
+  // Suggested "Total volume to prepare" from the match_Conc-Product sheet
+  // (column D). With a product chosen, that product's row decides; with none,
+  // a suggestion is used only when every row for this concentration agrees.
+  function suggestedVolume(concId, productId){
+    if(!concId || concId==='custom') return null;
+    var vols = [];
+    DB.matches.forEach(function(m){
+      if(m.concId!==concId || !(m.suggestVolume>0)) return;
+      if(!productId || m.productId===productId) vols.push(m.suggestVolume);
+    });
+    if(!vols.length) return null;
+    return vols.every(function(v){ return v===vols[0]; }) ? vols[0] : null;
+  }
+  // Sets the default volume for the current product / concentration: the
+  // suggestion if there is one, otherwise the usual 100 mL.
+  function applyDefaultVolume(){
+    var v = suggestedVolume(state.concSelection, state.productId);
+    state.totalVolume = v || DEFAULT_VOLUME_ML;
+    state.volumeTouched = false;
+    el.inpVolume.value = state.totalVolume;
+  }
+  function renderVolumeHint(){
+    var v = suggestedVolume(state.concSelection, state.productId);
+    el.volumeHint.textContent = v ? 'Suggested for this concentration: ' + fmtNum(v,2) + ' mL' : '';
+    el.volumeHint.hidden = !v;
+  }
+
+  // A closed <select> cuts long text off ("... [equivalent 1:10,00"), so the
+  // selected concentration's note is also shown in full under the dropdown.
+  function renderConcNoteHint(productId){
+    var id = el.selConc.value;
+    var note = (id && id !== 'custom') ? matchNote(id, productId) : '';
+    el.concNoteHint.textContent = note ? 'Note: ' + note : '';
+    el.concNoteHint.hidden = !note;
+  }
+
+  function infoText(val){
+    return val
+      ? '<div class="info-value">' + escapeHtml(val) + '</div>'
+      : '<div class="info-value empty">Not specified</div>';
+  }
+  function infoPart(label, val){
+    return '<div class="info-part"><div class="info-part-label">' + escapeHtml(label) + '</div>' + infoText(val) + '</div>';
+  }
+  function infoBox(title, bodyHtml, mod){
+    return '<div class="info-box' + (mod ? ' ' + mod : '') + '"><h3 class="info-box-title">' +
+           escapeHtml(title) + '</h3>' + bodyHtml + '</div>';
+  }
+
+  function renderInfoRows(d){
+    el.infoBoxes.innerHTML = [
+      infoBox('Titrate', infoText(d.titrate)),
+      infoBox('Keep', infoText(d.keep)),
+      infoBox('Clinical monitoring',
+        infoPart('Parameters', d.clinicalMonitoring) + infoPart('Frequency', d.clinicalFrequency)),
+      infoBox('Laboratory monitoring',
+        infoPart('Parameters', d.labMonitoring) + infoPart('Frequency', d.labFrequency)),
+      infoBox('Warning signs', infoText(d.warningSigns), 'info-box-warn info-box-wide'),
+      infoBox('Key points', infoText(d.keyPoints), 'info-box-wide')
+    ].join('');
+  }
+
+  /* =========================================================
+     Section I — weight
+     ========================================================= */
+  function computeWeights(){
+    var bw = state.bw, ht = state.ht, gender = state.gender;
+    var out = { bmi:null, ibw:null, lbw:null, abw:null };
+    if(bw && ht){
+      out.bmi = bw / Math.pow(ht/100, 2);
+    }
+    if(bw && ht && gender){
+      var htIn = ht/2.54;
+      out.ibw = (gender==='male' ? 50 : 45.5) + 2.3*(htIn-60);
+      out.lbw = gender==='male'
+        ? 0.407*bw + 0.267*ht - 19.2
+        : 0.252*bw + 0.473*ht - 48.3;
+      out.abw = out.ibw + 0.4*(bw - out.ibw);
+    }
+    return out;
+  }
+
+  function inRange(t, bmi){
+    if(t.min==null && t.max==null) return false;
+    var min = t.min==null ? -Infinity : t.min;
+    var max = t.max==null ? Infinity : t.max;
+    return bmi>=min && bmi<=max;
+  }
+
+  function suggestWeight(d, computed){
+    if(!d.weightBased) return null;
+    if(computed.bmi==null){
+      return { type:'total', value: state.bw, label:'actual body weight', note:'Enter height for a BMI-based recommendation.' };
+    }
+    var bmi = computed.bmi, tiers = d.bwTiers;
+    if(inRange(tiers.total, bmi)) return { type:'total', value: state.bw, label:'actual body weight' };
+    if(inRange(tiers.ideal, bmi)){
+      if(computed.ibw!=null) return { type:'ideal', value: computed.ibw, label:'ideal body weight' };
+      return { type:'total', value: state.bw, label:'actual body weight', note:'Select gender for an ideal-body-weight recommendation at this BMI.' };
+    }
+    if(inRange(tiers.adjusted, bmi)){
+      if(computed.abw!=null) return { type:'adjusted', value: computed.abw, label:'adjusted body weight' };
+      return { type:'total', value: state.bw, label:'actual body weight', note:'Select gender for an adjusted-body-weight recommendation at this BMI.' };
+    }
+    return { type:'total', value: state.bw, label:'actual body weight' };
+  }
+
+  function chipHtml(label, value, unit, highlighted){
+    var display = value==null ? '\u2014' : escapeHtml(fmtNum(value,1)) + (unit ? ' '+unit : '');
+    return '<span class="weight-chip'+(highlighted?' suggested':'')+'"><span>'+escapeHtml(label)+'</span><strong>'+display+'</strong></span>';
+  }
+
+  function onWeightChange(){
+    var d = currentDrug();
+    if(!d) return;
+    var computed = computeWeights();
+    var suggestion = suggestWeight(d, computed);
+
+    if(computed.bmi==null){
+      el.weightComputed.hidden = true;
+    } else {
+      el.weightComputed.hidden = false;
+      var chips = [];
+      chips.push(chipHtml('BMI', computed.bmi, '', false));
+      chips.push(chipHtml('Ideal BW', computed.ibw, 'kg', suggestion && suggestion.type==='ideal'));
+      chips.push(chipHtml('Lean BW', computed.lbw, 'kg', false));
+      chips.push(chipHtml('Adjusted BW', computed.abw, 'kg', suggestion && suggestion.type==='adjusted'));
+      el.weightChips.innerHTML = chips.join('');
+    }
+
+    if(d.weightBased){
+      el.weightForCalcWrap.hidden = false;
+      if(state.calcWeightAuto){
+        var sv = suggestion ? suggestion.value : null;
+        state.calcWeight = (sv!=null && !isNaN(sv)) ? roundTo(sv,1) : null;
+        el.inpCalcWeight.value = state.calcWeight!=null ? state.calcWeight : '';
+        el.btnUseSuggested.hidden = true;
+        el.calcWeightHint.textContent = suggestion
+          ? ('Suggested: ' + suggestion.label + (suggestion.note ? ' \u2014 ' + suggestion.note : (computed.bmi!=null ? ' (BMI ' + fmtNum(computed.bmi,1) + ')' : '')))
+          : 'Enter body weight to begin.';
+      } else {
+        el.btnUseSuggested.hidden = false;
+        el.calcWeightHint.textContent = suggestion && suggestion.value!=null
+          ? ('Suggested: ' + suggestion.label + ' (' + fmtNum(suggestion.value,1) + ' kg)')
+          : '';
+      }
+    } else {
+      el.weightForCalcWrap.hidden = true;
+      state.calcWeight = null;
+    }
+
+    renderSection1Alerts(d);
+    recompute();
+  }
+
+  // Levosimendan: warn under the weight section when total (actual) body
+  // weight is above the limit. Uses the weight entered in Section I, not the
+  // weight chosen for the dose calculation. Shown here only; it is not
+  // mirrored into the sticky prescribing box.
+  function renderSection1Alerts(d){
+    var html = '';
+    if(RULE_LEVOSIMENDAN.name.test(d.generic) && state.bw!=null && state.bw > RULE_LEVOSIMENDAN.maxTbwKg){
+      html = alertHtml('warn', 'Total body weight is above ' + RULE_LEVOSIMENDAN.maxTbwKg +
+        ' kg \u2014 there are no safety data for levosimendan at this weight. ' +
+        'Consider using another weight for dose calculation.');
+    }
+    el.sec1Alerts.innerHTML = html;
+  }
+
+  /* =========================================================
+     Section II — preparation
+     ========================================================= */
+  function resolveSelectedConcentration(d){
+    if(state.concSelection === 'custom'){
+      if(state.customConc==null || !(state.customConc>0)) return null;
+      return {
+        concValue: state.customConc,
+        concUnit: d.concMaxUnit,
+        diluent: state.diluent || 'NSS',
+        route: state.customRoute || null,
+        isUndiluted: false,
+        isCustom: true
+      };
+    }
+    if(!state.concSelection) return null;
+    var c = DB.concentrations.filter(function(x){ return x.id===state.concSelection; })[0];
+    if(!c) return null;
+    return {
+      concValue: c.concValue,
+      concUnit: c.concUnit,
+      diluent: c.isUndiluted ? null : (c.diluent1 && c.diluent2 ? state.diluent : c.diluent1),
+      route: c.route,
+      isUndiluted: c.isUndiluted,
+      isCustom: false
+    };
+  }
+
+  function renderSection2(d){
+    var mode = state.concSelection==='custom' ? 'custom' : (state.concSelection ? 'preset' : 'none');
+    var preset = mode==='preset' ? DB.concentrations.filter(function(c){ return c.id===state.concSelection; })[0] : null;
+
+    el.customConcRow.hidden = mode!=='custom';
+    if(mode==='custom'){
+      el.customConcUnit.textContent = d.concMaxUnit;
+      if(document.activeElement!==el.inpCustomConc) el.inpCustomConc.value = state.customConc!=null ? state.customConc : '';
+      el.selCustomRoute.value = state.customRoute || '';
+    }
+
+    var isUndiluted = mode==='preset' && preset.isUndiluted;
+
+    if(mode==='custom'){
+      el.selDiluent.hidden=false; el.diluentFixed.hidden=true;
+      el.selDiluent.innerHTML = '<option value="NSS">NSS</option><option value="D5W">D5W</option>';
+      if(!state.diluent) state.diluent = 'NSS';
+      el.selDiluent.value = state.diluent;
+    } else if(isUndiluted){
+      el.selDiluent.hidden=true; el.diluentFixed.hidden=false;
+      el.diluentFixed.textContent = 'No diluent required (administered undiluted)';
+    } else if(mode==='preset' && preset.diluent1 && preset.diluent2){
+      el.selDiluent.hidden=false; el.diluentFixed.hidden=true;
+      el.selDiluent.innerHTML = '<option value="'+preset.diluent1+'">'+preset.diluent1+'</option><option value="'+preset.diluent2+'">'+preset.diluent2+'</option>';
+      if(!state.diluent) state.diluent = preset.diluent1;
+      el.selDiluent.value = state.diluent;
+    } else if(mode==='preset'){
+      el.selDiluent.hidden=true; el.diluentFixed.hidden=false;
+      el.diluentFixed.textContent = preset.diluent1 || 'None specified';
+      state.diluent = preset.diluent1 || null;
+    } else {
+      el.selDiluent.hidden=true; el.diluentFixed.hidden=false;
+      el.diluentFixed.textContent = '\u2014';
+    }
+
+    el.volumeField.hidden = isUndiluted;
+    if(!isUndiluted && document.activeElement!==el.inpVolume){
+      el.inpVolume.value = state.totalVolume!=null ? state.totalVolume : '';
+    }
+
+    el.routeField.hidden = mode==='custom';
+    if(mode==='preset'){
+      el.routeFixed.textContent = preset.route || 'Not specified \u2014 please confirm';
+    } else if(mode==='none'){
+      el.routeFixed.textContent = '\u2014';
+    }
+
+    renderVolumeHint();
+    renderPrepSummary(d);
+    renderSection2Alerts(d);
+  }
+
+  function renderPrepSummary(d){
+    var sel = state.selConc;
+    if(!sel){ el.prepSummary.innerHTML = ''; return; }
+    var html = '';
+    if(sel.isUndiluted){
+      html = 'Administer undiluted at ' + fmtNum(sel.concValue,4) + ' ' + escapeHtml(sel.concUnit) + '.';
+    } else if(state.derivedAmountToAdd!=null){
+      var amountUnit = sel.concUnit.split('/')[0];
+      var bag = bagFigures();          // per-bag figures when a drip duration splits the order
+      var split = bag.bags > 1;
+      html = 'Add ' + fmtNum(bag.amount,2) + ' ' + escapeHtml(amountUnit) + ' of ' + escapeHtml(d.generic) +
+             ' to ' + escapeHtml(sel.diluent || 'diluent') + ', total volume ' + fmtNum(bag.volume,1) + ' mL' +
+             (split ? ' per bag. Prepare ' + bag.bags + ' bags (q ' + RULE_AMIODARONE_DRIP.stabilityHours + ' h \u00d7 ' + bag.bags +
+                      '; ' + fmtNum(state.derivedAmountToAdd,2) + ' ' + escapeHtml(amountUnit) + ' / ' + fmtNum(state.totalVolume,1) + ' mL in all).' : '.');
+      var product = state.productId ? DB.products.filter(function(p){ return p.id===state.productId; })[0] : null;
+      if(product && product.concPerML){
+        var amtInProductUnit = bag.amount * massFactor(amountUnit, product.amountUnit);
+        var drawVolume = amtInProductUnit / product.concPerML;
+        var vials = Math.ceil((amtInProductUnit / product.amount) - 1e-9);
+        html += ' <span class="prep-draw">Draw \u2248 ' + fmtNum(drawVolume,2) + ' mL from ' + escapeHtml(product.name) +
+                ' (\u2248 ' + vials + ' vial' + (vials===1?'':'s') + (split ? ' per bag' : '') + ').</span>';
+      }
+    }
+    el.prepSummary.innerHTML = html;
+  }
+
+  // Fixed note(s) for this drug in Section II. Filled once when the drug is
+  // opened and kept in its own slot, so selecting a product, concentration
+  // or route never clears it (unlike the alerts above it, which are rebuilt
+  // on every change).
+  function renderPrepNote(d){
+    var html = '';
+    PREP_NOTES.forEach(function(n){
+      if(n.name.test(d.generic)) html += alertHtml('info', n.text);
+    });
+    el.prepNote.innerHTML = html;
+  }
+
+  function renderSection2Alerts(d){
+    var sel = state.selConc;
+    var html = '';
+    if(sel){
+      var maxForRoute = null;
+      if(sel.route==='Central') maxForRoute = d.concCentralMax;
+      else if(sel.route==='Peripheral' || sel.route==='Large Peripheral') maxForRoute = d.concPeripheralMax;
+
+      if(maxForRoute!=null && sel.concValue > maxForRoute){
+        var msg = 'This concentration ('+fmtNum(sel.concValue,4)+' '+sel.concUnit+') exceeds the recommended maximum for '+sel.route+' administration ('+fmtNum(maxForRoute,4)+' '+d.concMaxUnit+').';
+        html += alertHtml('warn', msg);
+        state.criticalAlerts.push({ type:'warn', msg:msg });
+      }
+      if(sel.isCustom && !sel.route){
+        html += alertHtml('info','Select a route above to check this concentration against the recommended maximum.');
+      }
+      if(!sel.isCustom && !sel.route){
+        html += alertHtml('info','Route of administration is not specified for this preparation \u2014 please confirm before charting.');
+      }
+    }
+    el.sec2Alerts.innerHTML = html;
+  }
+
+  /* =========================================================
+     Section III — dose <-> rate
+     ========================================================= */
+  function renderDoseRange(d){
+    var txt = 'Recommended: ' + fmtNum(d.doseLower,3) + '\u2013' + fmtNum(d.doseUpper,3) + ' ' + d.doseUnit;
+    if(d.doseMax!=null) txt += ' \u00b7 do not exceed ' + fmtNum(d.doseMax,3) + ' ' + d.doseUnit;
+    el.doseRange.textContent = txt;
+  }
+
+  function renderSection3(d, canCalc){
+    el.doseUnitSuffix.textContent = d.doseUnit;
+    // With a drip duration ticked both boxes are calculated, so they are
+    // read-only and always refreshed (even if one still has focus).
+    var computed = !!state.drip;
+    el.inpDose.readOnly = computed; el.inpRate.readOnly = computed;
+    el.wrapDose.classList.toggle('is-computed', computed);
+    el.wrapRate.classList.toggle('is-computed', computed);
+    if(computed || document.activeElement!==el.inpDose) el.inpDose.value = state.dose!=null ? fmtNum(state.dose,3) : '';
+    if(computed || document.activeElement!==el.inpRate) el.inpRate.value = state.rate!=null ? fmtNum(state.rate,2) : '';
+
+    var hint = '';
+    if(state.drip){
+      if(!state.drip.ready) hint = 'Choose a diluted concentration and a total volume in Section II to calculate the ' + state.drip.hours + '-hr drip rate.';
+    } else if(!canCalc){
+      hint = !state.selConc
+        ? 'Choose a concentration in Section II to enable the dose \u2194 rate calculation.'
+        : 'Enter body weight in Section I to enable the dose \u2194 rate calculation.';
+    }
+    el.sec3PrereqHint.textContent = hint;
+    el.sec3PrereqHint.hidden = !hint;
+    renderDoseRange(d);
+    renderSection3Alerts(d);
+  }
+
+  function renderSection3Alerts(d){
+    var html = '';
+    if(state.dose!=null){
+      if(d.doseMax!=null && state.dose > d.doseMax){
+        var msg = 'This dose ('+fmtNum(state.dose,3)+' '+d.doseUnit+') exceeds the maximum recommended dose of '+fmtNum(d.doseMax,3)+' '+d.doseUnit+'.';
+        html += alertHtml('danger', msg);
+        state.criticalAlerts.push({ type:'danger', msg:msg });
+      } else if((d.doseLower!=null && state.dose < d.doseLower) || (d.doseUpper!=null && state.dose > d.doseUpper)){
+        html += alertHtml('info','This dose is outside the typical range of '+fmtNum(d.doseLower,3)+'\u2013'+fmtNum(d.doseUpper,3)+' '+d.doseUnit+'.');
+      }
+    }
+    html += cisatracuriumHint(d);
+    html += dripNote(d);
+    el.sec3Alerts.innerHTML = html;
+  }
+
+  /* =========================================================
+     Amiodarone drip (12 h / 24 h)
+     ========================================================= */
+  function dripSupported(d){ return RULE_AMIODARONE_DRIP.name.test(d.generic); }
+
+  // The drip plan for the current selections, or null when no duration is
+  // ticked. The Section II total volume is the whole order, infused over
+  // `hours`; each bag runs for at most the stability time, so 24 hr = 2 bags.
+  function dripPlan(d){
+    if(!dripSupported(d) || !state.dripHours) return null;
+    var sel = state.selConc, V = state.totalVolume;
+    var stab = RULE_AMIODARONE_DRIP.stabilityHours;
+    var plan = {
+      hours: state.dripHours,
+      bags: Math.max(1, Math.ceil(state.dripHours / stab - 1e-9)),
+      bagHours: Math.min(state.dripHours, stab),
+      ready: false
+    };
+    if(sel && !sel.isUndiluted && sel.concValue>0 && V>0){
+      plan.ready = true;
+      plan.rate = V / state.dripHours;              // mL/hr
+      plan.bagVolume = V / plan.bags;               // mL per bag
+      plan.bagAmount = sel.concValue * plan.bagVolume;
+    }
+    return plan;
+  }
+  // What goes into ONE bag: the whole preparation normally, or a share of it
+  // when a drip duration splits the order.
+  function bagFigures(){
+    var p = state.drip;
+    if(p && p.ready) return { amount:p.bagAmount, volume:p.bagVolume, bags:p.bags };
+    return { amount:state.derivedAmountToAdd, volume:state.totalVolume, bags:1 };
+  }
+  function dripNote(d){
+    var p = state.drip, sel = state.selConc;
+    if(!p || !p.ready) return '';
+    var unit = sel.concUnit.split('/')[0];
+    var stab = RULE_AMIODARONE_DRIP.stabilityHours;
+    var perBag = fmtNum(p.bagAmount,2) + ' ' + unit + ' + ' + (sel.diluent || 'diluent') + ' up to ' + fmtNum(p.bagVolume,1) + ' mL';
+    var msg;
+    if(p.bags > 1){
+      msg = 'Stable for only ' + stab + ' hr after dilution, so the ' + p.hours + '-hr order (' + fmtNum(state.derivedAmountToAdd,2) + ' ' + unit +
+            ') is split into ' + p.bags + ' bags, q ' + stab + ' h \u00d7 ' + p.bags + ': each bag ' + perBag + ', run at ' + fmtNum(p.rate,2) +
+            ' mL/hr for ' + p.bagHours + ' hr. Prepare the next bag fresh before hanging it.';
+    } else {
+      msg = 'One bag (' + perBag + ') run at ' + fmtNum(p.rate,2) + ' mL/hr for ' + p.hours + ' hr \u2014 within the ' + stab + '-hr stability after dilution.';
+    }
+    return alertHtml('info', msg);
+  }
+
+  // Cisatracurium: once the calculated infusion reaches the threshold, point
+  // to the larger (cost-effective) vial. The amount per hour comes from
+  // rate x concentration, so it does not depend on the dose unit or weight.
+  function cisatracuriumHint(d){
+    var rule = RULE_CISATRACURIUM, sel = state.selConc;
+    if(!rule.name.test(d.generic) || state.rate==null || !sel || !(sel.concValue>0)) return '';
+    var amtUnit = sel.concUnit.split('/')[0];
+    if(!MASS_TO_MCG[amtUnit]) return '';
+    var mgPerHr = state.rate * sel.concValue * massFactor(amtUnit, 'mg');
+    if(roundTo(mgPerHr,2) < rule.thresholdMgPerHr) return '';
+
+    var product = DB.products.filter(function(p){
+      return p.drugId===d.id && p.amountUnit==='mg' && p.amount===rule.productAmountMg;
+    })[0];
+    var label = product
+      ? (product.name + ' ' + fmtNum(product.amount,3) + ' mg / ' + fmtNum(product.volumeML,2) + ' mL')
+      : rule.fallbackLabel;
+    var msg = 'Calculated dose is ' + fmtNum(mgPerHr,2) + ' mg/hr (\u2265 ' + rule.thresholdMgPerHr +
+              ' mg/hr): the ' + label + ' product is preferred (cost-effectiveness).';
+    if(product && state.productId===product.id) msg += ' Currently selected.';
+    return alertHtml('info', msg);
+  }
+
+  /* =========================================================
+     Transcription
+     ========================================================= */
+  function renderTranscription(d){
+    var sel = state.selConc;
+    var html = '<span class="rx-drug">'+escapeHtml(d.generic)+'</span> ';
+
+    if(sel && sel.isUndiluted){
+      html += rxTok(fmtNum(sel.concValue,4)) + ' ' + escapeHtml(sel.concUnit) + ' (undiluted)';
+    } else {
+      var amountUnit = sel ? sel.concUnit.split('/')[0] : '';
+      var bag = bagFigures();   // one bag; differs from the total only for a split drip order
+      html += rxTok(fmtNum(bag.amount,2)) + (amountUnit ? ' '+escapeHtml(amountUnit) : '') +
+              ' + ' + rxTok(sel ? sel.diluent : null) +
+              ' up to ' + rxTok(fmtNum(bag.volume,1)) + ' mL';
+    }
+
+    // "IV drip in 12 hr" when an amiodarone drip duration is ticked: each
+    // bag runs for 12 hr, so a 24-hr order reads as the half-size bag.
+    var dripTxt = (state.drip && state.drip.ready) ? ' in ' + state.drip.bagHours + ' hr' : '';
+    html += ' IV drip' + dripTxt + ' via ' + rxTok(sel ? sel.route : null) + ' line, rate ' +
+            rxTok(fmtNum(state.rate,2)) + ' mL/hr (= ' + rxTok(fmtNum(state.dose,3)) + ' ' + escapeHtml(d.doseUnit) + ')';
+    // A 24-hr order is split into 12-hr bags, so the line ends "x 2 times".
+    if(state.drip && state.drip.ready && state.drip.bags > 1) html += ' x ' + state.drip.bags + ' times';
+
+    if(d.showTitrateKeep && state.showTitrateKeep){
+      html += ', Titrate ' + rxTok(d.titrate) + ', Keep ' + rxTok(d.keep);
+    }
+
+    el.rxText.innerHTML = html;
+  }
+
+  /* =========================================================
+     Central recompute
+     ========================================================= */
+  function recompute(){
+    var d = currentDrug();
+    if(!d) return;
+
+    state.criticalAlerts = [];
+
+    state.selConc = resolveSelectedConcentration(d);
+    state.derivedAmountToAdd = (state.selConc && !state.selConc.isUndiluted && state.totalVolume)
+      ? state.selConc.concValue * state.totalVolume : null;
+    state.drip = dripPlan(d);
+
+    renderSection2(d);
+
+    var bw = d.weightBased ? state.calcWeight : null;
+    var canCalc = !!(state.selConc && state.selConc.concValue>0 && (!d.weightBased || (bw!=null && bw>0)));
+
+    if(state.drip){
+      // Drip duration ticked: rate = total volume / hours; dose follows from it.
+      if(canCalc && state.drip.ready){
+        state.rate = state.drip.rate;
+        state.dose = rateToDose(state.rate, d.doseUnit, state.selConc.concValue, state.selConc.concUnit, bw);
+      } else { state.rate = null; state.dose = null; }
+    } else if(canCalc && state.lastEdited==='dose' && state.dose!=null){
+      state.rate = doseToRate(state.dose, d.doseUnit, state.selConc.concValue, state.selConc.concUnit, bw);
+    } else if(canCalc && state.lastEdited==='rate' && state.rate!=null){
+      state.dose = rateToDose(state.rate, d.doseUnit, state.selConc.concValue, state.selConc.concUnit, bw);
+    } else if(!canCalc){
+      if(state.lastEdited==='dose') state.rate = null;
+      if(state.lastEdited==='rate') state.dose = null;
+    }
+
+    renderSection3(d, canCalc);
+    renderTranscription(d);
+    renderRxAlerts();
+  }
+
+  function renderRxAlerts(){
+    el.rxAlerts.innerHTML = state.criticalAlerts.map(function(a){
+      return alertHtml(a.type, a.msg);
+    }).join('');
+  }
+
+})();
+</script>
 </body>
 </html>
