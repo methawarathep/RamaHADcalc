@@ -305,6 +305,49 @@
      from script) because phone pickers ignore option styling. */
   .field select option.opt-bold{ font-weight:700; }
   .field select.sel-bold{ font-weight:700; }
+  /* Concentration drop-down: a native <select> cannot colour part of an
+     option, so the visible control is a button + list built on top of the
+     (hidden) select. Same keyboard behaviour; works the same on phones. */
+  :root{ --ratio-green:#1A7A34; }
+  .rich-select{ position:relative; }
+  .field select.rs-native{
+    position:absolute; left:0; top:0; width:1px; height:1px; padding:0; border:0;
+    opacity:0; pointer-events:none; overflow:hidden; clip:rect(0 0 0 0);
+  }
+  .rs-btn{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 12px; border:1px solid var(--line-strong); border-radius:var(--radius-sm);
+    background:var(--surface-2); font-size:.95rem; text-align:left; cursor:pointer; color:var(--ink);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .rs-btn:focus-visible, .rs-btn[aria-expanded="true"]{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  .rs-value{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rs-btn.sel-bold .rs-value{ font-weight:700; }
+  .rs-caret{
+    flex:none; width:7px; height:7px; margin:-3px 2px 0 0;
+    border-right:2px solid var(--ink-soft); border-bottom:2px solid var(--ink-soft);
+    transform:rotate(45deg); transition:transform .15s;
+  }
+  .rs-btn[aria-expanded="true"] .rs-caret{ transform:rotate(225deg); margin-top:3px; }
+  .rs-list{
+    position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:30;
+    margin:0; padding:4px; list-style:none; background:var(--surface);
+    border:1px solid var(--line-strong); border-radius:var(--radius-sm); box-shadow:var(--shadow-2);
+    max-height:min(320px, 48vh); overflow-y:auto; overscroll-behavior:contain;
+  }
+  .rs-list.rs-up{ top:auto; bottom:calc(100% + 4px); }
+  .rs-list:focus{ outline:none; }
+  .rs-opt{
+    padding:9px 12px; border-radius:6px; cursor:pointer; font-size:.93rem; line-height:1.4;
+    position:relative; overflow-wrap:anywhere;
+  }
+  .rs-opt.is-active{ background:var(--accent-soft); }
+  .rs-opt[aria-selected="true"]{ box-shadow:inset 3px 0 0 var(--accent); }
+  .rs-opt.rs-placeholder{ color:var(--ink-soft); }
+  .rs-opt.opt-bold{ font-weight:700; }
+  .ratio{ color:var(--ratio-green); }
   .fixed-value{
     margin:0; padding:10px 12px; background:var(--surface-2);
     border:1px solid var(--line); border-radius:var(--radius-sm); font-size:.95rem;
@@ -524,8 +567,17 @@
             <select id="sel-product"></select>
           </div>
           <div class="field">
-            <label for="sel-conc">Concentration</label>
-            <select id="sel-conc"></select>
+            <label id="conc-label" for="conc-rs-btn">Concentration</label>
+            <div class="rich-select" id="conc-rs">
+              <!-- the real <select> stays as the data model (value / change event);
+                   the button + list on top are what people see and use -->
+              <select id="sel-conc" class="rs-native" tabindex="-1" aria-hidden="true"></select>
+              <button type="button" id="conc-rs-btn" class="rs-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="conc-label conc-rs-value">
+                <span class="rs-value" id="conc-rs-value"></span>
+                <span class="rs-caret" aria-hidden="true"></span>
+              </button>
+              <ul class="rs-list" id="conc-rs-list" role="listbox" tabindex="-1" aria-labelledby="conc-label" hidden></ul>
+            </div>
             <span class="hint conc-note" id="conc-note-hint" hidden></span>
           </div>
         </div>
@@ -618,7 +670,7 @@
   </main>
 
   <footer class="app-footer">
-    <p>พัฒนาโดย: ภญ.วริสสาร์ กอบเพ็ชรหยก, ภญ.ทิพย์นภา จารุจิตมณีกุล, ภญ.เบญญาภา เพชรปวรรักษ์, ภก.เมธาวราเทพ ทองทาบ</p>
+    <p>พัฒนาโดย: ภญ.วริสสาร์ กอบเพ็ชรหยก, ภญ.เบญญาภา เพชรปวรรักษ์, ภญ.ทิพย์นภา จารุจิตมณีกุล, ภก.เมธาวราเทพ ทองทาบ</p>
     <p>&copy; 2026 งานเภสัชกรรมคลินิก ฝ่ายเภสัชกรรม คณะแพทยศาสตร์โรงพยาบาลรามาธิบดี มหาวิทยาลัยมหิดล</p>
   </footer>
 
@@ -786,6 +838,7 @@
     diluent:null,
     totalVolume:DEFAULT_VOLUME_ML, volumeTouched:false,
     dripHours:null, drip:null,
+    weightType:null,
     dose:null, rate:null, lastEdited:null,
     selConc:null, derivedAmountToAdd:null,
     criticalAlerts:[],
@@ -803,7 +856,7 @@
       'rx-box','rx-text','rx-alerts',
       'inp-bw','inp-ht','inp-gender','weight-computed','weight-chips',
       'weight-for-calc-wrap','inp-calc-weight','btn-use-suggested','calc-weight-hint','sec1-alerts',
-      'sec2-drug-name','sel-product','sel-conc','conc-note-hint',
+      'sec2-drug-name','sel-product','sel-conc','conc-note-hint','conc-rs','conc-rs-btn','conc-rs-value','conc-rs-list',
       'custom-conc-row','inp-custom-conc','custom-conc-unit','sel-custom-route',
       'diluent-label','sel-diluent','diluent-fixed','volume-field','inp-volume','volume-hint',
       'route-field','route-fixed','prep-summary','sec2-alerts','prep-note',
@@ -922,6 +975,7 @@
   }
 
   function bindEvents(){
+    bindConcRich();
     el.btnBrand.addEventListener('click', goHome);
     el.btnBack.addEventListener('click', goHome);
     window.addEventListener('popstate', function(){
@@ -979,7 +1033,7 @@
       state.concSelection = this.value;
       state.diluent = null; state.customConc = null; state.customRoute = null;
       renderConcNoteHint(state.productId);
-      syncConcBold();
+      syncConcRich();
       applyDefaultVolume();
       recompute();
     });
@@ -1050,6 +1104,7 @@
   }
 
   function showHomeView(){
+    rsClose(false);
     state.currentDrugId = null;
     el.viewHome.hidden = false;
     el.viewDrug.hidden = true;
@@ -1071,7 +1126,7 @@
     state.calcWeight=null; state.calcWeightAuto=true;
     state.productId=null; state.concSelection=''; state.customConc=null; state.customRoute=null;
     state.diluent=null; state.totalVolume=DEFAULT_VOLUME_ML; state.volumeTouched=false;
-    state.dripHours=null; state.drip=null;
+    state.dripHours=null; state.drip=null; state.weightType=null;
     state.dose=null; state.rate=null; state.lastEdited=null;
     state.selConc=null; state.derivedAmountToAdd=null; state.criticalAlerts=[];
     state.showTitrateKeep=false;
@@ -1212,16 +1267,25 @@
       .sort(function(a, b){ return (a.v - b.v) || (a.i - b.i); })
       .map(function(x){ return x.c; });
 
-    var html = '<option value="">\u2014 Select a concentration \u2014</option>';
+    // What the drop-down offers. Each entry is built from parts so the visible
+    // list can colour "(ratio ...)" green; the hidden native <select> gets the
+    // same text as one plain string.
+    concChoices = [{ value:'', head:'\u2014 Select a concentration \u2014', placeholder:true }];
     list.forEach(function(c){
       var routeTxt = c.route ? ' \u00b7 ' + c.route : '';
       var note = matchNote(c.id, productId);
-      var label = (c.isUndiluted ? 'Undiluted ' : '') + fmtNum(c.concValue,4) + ' ' + c.concUnit + routeTxt +
-                  ' (ratio ' + c.ratioLabel + ')' + (note ? ' \u00b7 ' + note : '');
-      html += '<option value="'+c.id+'"'+(c.boldText ? ' class="opt-bold"' : '')+'>'+escapeHtml(label)+'</option>';
+      concChoices.push({
+        value: c.id,
+        head: (c.isUndiluted ? 'Undiluted ' : '') + fmtNum(c.concValue,4) + ' ' + c.concUnit + routeTxt,
+        ratio: '(ratio ' + c.ratioLabel + ')',
+        tail: note ? ' \u00b7 ' + note : '',
+        bold: !!c.boldText
+      });
     });
-    html += '<option value="custom">Custom concentration\u2026</option>';
-    el.selConc.innerHTML = html;
+    concChoices.push({ value:'custom', head:'Custom concentration\u2026', placeholder:true });
+    el.selConc.innerHTML = concChoices.map(function(ch){
+      return '<option value="'+escapeHtml(ch.value)+'"'+(ch.bold ? ' class="opt-bold"' : '')+'>'+escapeHtml(choiceText(ch))+'</option>';
+    }).join('');
 
     var stillValid = state.concSelection==='' || state.concSelection==='custom' ||
       list.some(function(c){ return c.id===state.concSelection; });
@@ -1231,12 +1295,131 @@
     }
     el.selConc.value = state.concSelection;
     renderConcNoteHint(productId);
-    syncConcBold();
+    renderConcList();
   }
-  // Bold the closed select too when the chosen concentration is a bold one.
-  function syncConcBold(){
-    var opt = el.selConc.options[el.selConc.selectedIndex];
-    el.selConc.classList.toggle('sel-bold', !!(opt && opt.classList.contains('opt-bold')));
+
+  /* =========================================================
+     Concentration drop-down (button + list over the hidden select)
+     ========================================================= */
+  var concChoices = [];
+  var rs = { open:false, active:-1, typed:'', typedAt:0 };
+
+  function choiceText(ch){
+    return ch.ratio ? ch.head + ' ' + ch.ratio + ch.tail : ch.head;
+  }
+  // Same text, with "(ratio ...)" in its own span so CSS can colour it.
+  function choiceHtml(ch){
+    return ch.ratio
+      ? escapeHtml(ch.head) + ' <span class="ratio">' + escapeHtml(ch.ratio) + '</span>' + escapeHtml(ch.tail)
+      : escapeHtml(ch.head);
+  }
+  function renderConcList(){
+    rsClose(false);
+    el.concRsList.innerHTML = concChoices.map(function(ch, i){
+      return '<li role="option" id="conc-opt-'+i+'" class="rs-opt'+(ch.bold ? ' opt-bold' : '')+(ch.placeholder ? ' rs-placeholder' : '')+
+             '" data-index="'+i+'" aria-selected="false">'+choiceHtml(ch)+'</li>';
+    }).join('');
+    syncConcRich();
+  }
+  function selectedChoiceIndex(){
+    for(var i=0;i<concChoices.length;i++){ if(concChoices[i].value===el.selConc.value) return i; }
+    return 0;
+  }
+  // Button text, bold state and the highlighted row all follow the hidden
+  // select's current value (set by the list, by a re-populate, or by code).
+  function syncConcRich(){
+    var idx = selectedChoiceIndex(), ch = concChoices[idx];
+    if(!ch) return;
+    el.concRsValue.innerHTML = choiceHtml(ch);
+    el.concRsBtn.classList.toggle('sel-bold', !!ch.bold);
+    el.selConc.classList.toggle('sel-bold', !!ch.bold);
+    var items = el.concRsList.children;
+    for(var i=0;i<items.length;i++) items[i].setAttribute('aria-selected', i===idx ? 'true' : 'false');
+  }
+  function rsItems(){ return el.concRsList.children; }
+  function rsHighlight(i, scroll){
+    var items = rsItems();
+    if(!items.length) return;
+    i = Math.max(0, Math.min(items.length-1, i));
+    for(var k=0;k<items.length;k++) items[k].classList.remove('is-active');   // only ever one highlighted row
+    rs.active = i;
+    items[i].classList.add('is-active');
+    el.concRsList.setAttribute('aria-activedescendant', items[i].id);
+    if(scroll && items[i].scrollIntoView) items[i].scrollIntoView({ block:'nearest' });
+  }
+  function rsOpen(){
+    if(rs.open) return;
+    rs.open = true;
+    el.concRsList.hidden = false;
+    el.concRsBtn.setAttribute('aria-expanded','true');
+    // open upward when there is clearly more room above than below
+    var r = el.concRsBtn.getBoundingClientRect(), vh = window.innerHeight || document.documentElement.clientHeight;
+    var below = vh - r.bottom, above = r.top;
+    el.concRsList.classList.toggle('rs-up', below < 220 && above > below);
+    rs.active = -1;
+    rsHighlight(selectedChoiceIndex(), true);
+    el.concRsList.focus({ preventScroll:true });
+  }
+  function rsClose(returnFocus){
+    if(!rs.open){ return; }
+    rs.open = false;
+    el.concRsList.hidden = true;
+    el.concRsBtn.setAttribute('aria-expanded','false');
+    if(returnFocus) el.concRsBtn.focus();
+  }
+  function rsChoose(i){
+    var ch = concChoices[i];
+    if(!ch) return;
+    var changed = el.selConc.value !== ch.value;
+    el.selConc.value = ch.value;
+    syncConcRich();
+    rsClose(true);
+    if(changed) el.selConc.dispatchEvent(new Event('change', { bubbles:true }));
+  }
+  function bindConcRich(){
+    el.concRsBtn.addEventListener('click', function(){ if(rs.open) rsClose(false); else rsOpen(); });
+    el.concRsBtn.addEventListener('keydown', function(e){
+      if(e.key==='ArrowDown' || e.key==='ArrowUp' || e.key==='Enter' || e.key===' '){
+        e.preventDefault(); rsOpen();
+      }
+    });
+    el.concRsList.addEventListener('click', function(e){
+      var li = e.target.closest ? e.target.closest('.rs-opt') : null;
+      if(li) rsChoose(parseInt(li.getAttribute('data-index'), 10));
+    });
+    el.concRsList.addEventListener('mousemove', function(e){
+      var li = e.target.closest ? e.target.closest('.rs-opt') : null;
+      if(li){ var i = parseInt(li.getAttribute('data-index'), 10); if(i!==rs.active) rsHighlight(i, false); }
+    });
+    el.concRsList.addEventListener('keydown', function(e){
+      var n = rsItems().length;
+      switch(e.key){
+        case 'ArrowDown': e.preventDefault(); rsHighlight(rs.active+1, true); break;
+        case 'ArrowUp':   e.preventDefault(); rsHighlight(rs.active-1, true); break;
+        case 'Home':      e.preventDefault(); rsHighlight(0, true); break;
+        case 'End':       e.preventDefault(); rsHighlight(n-1, true); break;
+        case 'PageDown':  e.preventDefault(); rsHighlight(rs.active+5, true); break;
+        case 'PageUp':    e.preventDefault(); rsHighlight(rs.active-5, true); break;
+        case 'Enter': case ' ': e.preventDefault(); rsChoose(rs.active); break;
+        case 'Escape':    e.preventDefault(); rsClose(true); break;
+        case 'Tab':       rsClose(false); break;
+        default:
+          // type-ahead: letters / digits jump to the next entry starting with them
+          if(e.key.length===1 && !e.ctrlKey && !e.metaKey && !e.altKey){
+            var now = Date.now();
+            rs.typed = (now - rs.typedAt > 700 ? '' : rs.typed) + e.key.toLowerCase();
+            rs.typedAt = now;
+            for(var k=1;k<=n;k++){
+              var j = (rs.active + k) % n;
+              if(choiceText(concChoices[j]).toLowerCase().indexOf(rs.typed)===0){ rsHighlight(j, true); break; }
+            }
+          }
+      }
+    });
+    // a press anywhere outside the control closes the list
+    document.addEventListener('pointerdown', function(e){
+      if(rs.open && !(e.target.closest && e.target.closest('#conc-rs'))) rsClose(false);
+    });
   }
 
   // Suggested "Total volume to prepare" from the match_Conc-Product sheet
@@ -1374,6 +1557,7 @@
       if(state.calcWeightAuto){
         var sv = suggestion ? suggestion.value : null;
         state.calcWeight = (sv!=null && !isNaN(sv)) ? roundTo(sv,1) : null;
+        state.weightType = suggestion ? suggestion.type : null;   // which weight the suggestion is
         el.inpCalcWeight.value = state.calcWeight!=null ? state.calcWeight : '';
         el.btnUseSuggested.hidden = true;
         el.calcWeightHint.textContent = suggestion
@@ -1675,6 +1859,20 @@
   /* =========================================================
      Transcription
      ========================================================= */
+  var WEIGHT_LABEL = { total:'Total BW', ideal:'Ideal BW', adjusted:'Adjusted BW' };
+
+  // ", use Ideal BW 56.9 kg" for weight-based drugs: the weight the dose is
+  // calculated on. While "Weight to use for dose calculation" still holds the
+  // suggested weight it is named (Ideal / Adjusted / Total BW); once the user
+  // types their own weight it is just "BW". No weight yet -> a blank.
+  function weightPhrase(d){
+    if(!d.weightBased) return '';
+    var kg = state.calcWeight!=null ? fmtNum(state.calcWeight,1) : null;
+    var label = 'BW';
+    if(kg!==null && state.calcWeightAuto && WEIGHT_LABEL[state.weightType]) label = WEIGHT_LABEL[state.weightType];
+    return ', use ' + label + ' ' + rxTok(kg) + ' kg';
+  }
+
   function renderTranscription(d){
     var sel = state.selConc;
     var html = '<span class="rx-drug">'+escapeHtml(d.generic)+'</span> ';
@@ -1696,6 +1894,8 @@
             rxTok(fmtNum(state.rate,2)) + ' mL/hr (= ' + rxTok(fmtNum(state.dose,3)) + ' ' + escapeHtml(d.doseUnit) + ')';
     // A 24-hr order is split into 12-hr bags, so the line ends "x 2 times".
     if(state.drip && state.drip.ready && state.drip.bags > 1) html += ' x ' + state.drip.bags + ' times';
+
+    html += weightPhrase(d);
 
     if(d.showTitrateKeep && state.showTitrateKeep){
       html += ', Titrate ' + rxTok(d.titrate) + ', Keep ' + rxTok(d.keep);
