@@ -1861,16 +1861,17 @@
      ========================================================= */
   var WEIGHT_LABEL = { total:'Total BW', ideal:'Ideal BW', adjusted:'Adjusted BW' };
 
-  // ", use Ideal BW 56.9 kg" for weight-based drugs: the weight the dose is
-  // calculated on. While "Weight to use for dose calculation" still holds the
-  // suggested weight it is named (Ideal / Adjusted / Total BW); once the user
-  // types their own weight it is just "BW". No weight yet -> a blank.
-  function weightPhrase(d){
+  // A new line reading "use Ideal BW 56.9 kg" for weight-based drugs (Weight_based
+  // = Y only): the weight the dose is calculated on. While "Weight to use for
+  // dose calculation" still holds the suggested weight it is named (Ideal /
+  // Adjusted / Total BW); once the user types their own weight it is just "BW".
+  // No weight yet -> a blank.
+  function weightLine(d){
     if(!d.weightBased) return '';
     var kg = state.calcWeight!=null ? fmtNum(state.calcWeight,1) : null;
     var label = 'BW';
     if(kg!==null && state.calcWeightAuto && WEIGHT_LABEL[state.weightType]) label = WEIGHT_LABEL[state.weightType];
-    return ', use ' + label + ' ' + rxTok(kg) + ' kg';
+    return '<br>use ' + label + ' ' + rxTok(kg) + ' kg';
   }
 
   function renderTranscription(d){
@@ -1895,11 +1896,12 @@
     // A 24-hr order is split into 12-hr bags, so the line ends "x 2 times".
     if(state.drip && state.drip.ready && state.drip.bags > 1) html += ' x ' + state.drip.bags + ' times';
 
-    html += weightPhrase(d);
-
     if(d.showTitrateKeep && state.showTitrateKeep){
       html += ', Titrate ' + rxTok(d.titrate) + ', Keep ' + rxTok(d.keep);
     }
+
+    // the weight the dose is based on goes on a line of its own, last
+    html += weightLine(d);
 
     el.rxText.innerHTML = html;
   }
